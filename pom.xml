@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>de.htwg.sysarch</groupId>
+    <artifactId>elevator-control</artifactId>
+    <version>0.1.0</version>
+    <packaging>jar</packaging>
+
+    <name>Elevator Control System</name>
+    <description>Modbus/TCP control system for the HTWG elevator simulation (Group E / C2)</description>
+
+    <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <junit.version>5.10.2</junit.version>
+    </properties>
+
+    <dependencies>
+        <!--
+            Modbus/TCP: the course provides a Maven build of easymodbus at
+            https://gitlab.ei.htwg-konstanz.de/system-architecture/25ws/easymodbus-maven
+            Add it here once the coordinates are confirmed (see CLAUDE.md §9), e.g.:
+
+            <dependency>
+                <groupId>de.htwg.ei.easymodbus</groupId>
+                <artifactId>easymodbus</artifactId>
+                <version>TBD</version>
+            </dependency>
+
+            The code targets the internal ModbusConnection port, so wiring the
+            real library is a single adapter implementation.
+        -->
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <mainClass>de.htwg.sysarch.elevator.ElevatorControlApplication</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
