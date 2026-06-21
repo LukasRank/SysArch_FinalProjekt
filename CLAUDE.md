@@ -61,6 +61,9 @@ meaningful change.
   `easymodbus-maven` (see [§9](#9-open-questions--decisions-needed) — coordinates
   to be confirmed). Until wired in, the code targets a thin internal
   `ModbusConnection` port so the concrete library stays swappable.
+- **HMI transport:** MQTT/TCP via Eclipse Paho (`org.eclipse.paho.client.mqttv3`);
+  messages are JSON via Gson. Used only by the infrastructure adapters and the
+  separate HMI app — the domain stays transport-agnostic (see [§8](#8-hmi-interface-boundary)).
 - **Tests:** JUnit 5.
 - **Logging:** `java.util.logging` (no extra dependency).
 
@@ -72,10 +75,17 @@ mvn package          # build jar
 mvn exec:java -Dexec.args="--sim"
 # Interactive simulation: type calls/emergency at runtime (c/u/d <1-4>, e, r, x, h, q):
 mvn exec:java -Dexec.args="--sim --interactive"
+# Expose the HMI over MQTT (needs a broker; falls back to console logging if none):
+mvn exec:java -Dexec.args="--sim --mqtt"
 # Run against the real PLC (requires HTWG network/VPN):
 mvn exec:java -Dexec.args="--modbus"
+# Start the standalone reference HMI (separate process; talks only MQTT):
+mvn exec:java -Dexec.mainClass=de.htwg.sysarch.hmi.HmiApplication
 ```
 
+> **Local MQTT broker for offline dev:** `brew install mosquitto && mosquitto -v`
+> (listens on `localhost:1883`). The lab broker is mosquitto on `ea-pc165` (HTWG VPN).
+>
 > **PowerShell:** quote the whole `-D` argument, e.g. `mvn exec:java "-Dexec.args=--sim"`.
 
 ---
@@ -131,15 +141,38 @@ elevator/
 │           └── HmiGateway.java         # DRIVEN port: publish status + events to HMI
 │
 └── infrastructure/                     # adapters (the only place with I/O)
-    ├── config/ElevatorConfig.java      # host, port, group, cycle time
+    ├── config/ElevatorConfig.java      # host, port, group, cycle time, MQTT broker/topic
     ├── modbus/
     │   ├── ModbusIoMap.java            # Codesys %QX/%IX/%QW → Modbus addresses
     │   ├── ModbusConnection.java       # thin port over the modbus client lib
     │   └── ModbusPlcGateway.java       # PlcGateway impl over ModbusConnection
     ├── simulation/SimulatedPlcGateway.java  # in-memory PLC for offline dev/tests
     ├── console/InteractiveConsole.java # stdin command driver for the simulation (--interactive)
-    └── hmi/LoggingHmiGateway.java      # placeholder HMI sink (logs) until transport chosen
+    ├── mqtt/                           # MQTT HMI transport (control side, --mqtt)
+    │   ├── MqttConnection.java         # thin port over the MQTT client lib (testable)
+    │   ├── PahoMqttConnection.java     # MqttConnection impl over Eclipse Paho
+    │   ├── MqttHmiGateway.java         # HmiGateway impl: publishes status/events as JSON
+    │   └── MqttCommandRouter.java      # subscribes cmd topic → drives OperatorPanel
+    └── hmi/LoggingHmiGateway.java      # console-logging HMI sink (default / --mqtt fallback)
 ```
+
+Two **sibling** top-level packages keep the HMI strictly separated from the control
+system across the MQTT boundary:
+
+```
+de.htwg.sysarch.mqtt/                   # SHARED contract — the only thing both sides import
+├── MqttTopics.java                     # <base>/status, <base>/event, <base>/cmd
+├── StatusMessage.java                  # control → HMI state DTO (primitives only)
+├── EventMessage.java                   # control → HMI event DTO
+├── CommandMessage.java                 # HMI → control command DTO (+ factory methods)
+└── JsonCodec.java                      # Gson facade used by both sides
+
+de.htwg.sysarch.hmi/                    # HMI side (reference/demo; partner group's responsibility)
+└── HmiApplication.java                 # standalone MQTT client; imports ONLY de.htwg.sysarch.mqtt
+```
+
+> The HMI app depends on the shared `mqtt` contract and Paho — **never** on any
+> `de.htwg.sysarch.elevator.*` class. That is the clear control↔HMI separation.
 
 ### Interface convention (per assignment §1.3)
 
@@ -242,25 +275,60 @@ Per level L∈{1..4}: `PIs_lLal, PIs_lLsl, PIs_lLr, PIs_lLsu, PIs_lLau`
 - Access only from the lab or **HTWG VPN**.
 - Cycle time: 100 ms.
 
+**HMI transport (MQTT):**
+
+- Broker: `localhost:1883` by default (offline dev); lab broker is mosquitto on
+  `ea-pc165` (HTWG VPN).
+- Base topic: `elevator/e` (status/event/cmd appended).
+- Keys: `mqtt.host`, `mqtt.port`, `mqtt.baseTopic`.
+
 Defaults live in `src/main/resources/application.properties` and
 `infrastructure/config/ElevatorConfig.java`.
 
 ---
 
-## 8. HMI interface boundary (to be specified with partner group)
+## 8. HMI interface boundary
 
-The transport between control and HMI is **not yet decided** (MQTT via the
-provided mosquitto on `ea-pc165`, MySQL, or a custom protocol). The architecture
-isolates this behind two ports so the decision is a localized adapter change:
+**Decision: the control↔HMI transport is MQTT** (the provided mosquitto on `ea-pc165`).
+The control system is the MQTT side that publishes state and subscribes to commands;
+the HMI is a separate process. The two share **only** the JSON message contract in
+`de.htwg.sysarch.mqtt` — neither imports the other's classes.
+
+The control system keeps both ports; MQTT is just their adapter:
 
 - `OperatorPanel` (driving) — HMI → control: hall calls, cabin calls, emergency
-  stop/reset, supervisory reset.
+  stop/reset, supervisory reset. MQTT adapter: `MqttCommandRouter`.
 - `HmiGateway` (driven) — control → HMI: `ElevatorStatus` snapshots + logged
-  `ElevatorEvent`s (arrivals, door states, alarms, mode changes).
+  `ElevatorEvent`s. MQTT adapter: `MqttHmiGateway`.
 
-Current placeholder adapter: `LoggingHmiGateway` (logs to console). Replace with
-the agreed transport adapter once the partner group's interface is fixed in the
-faculty GitLab wiki.
+**Topics** (`<base>` = `elevator/e`), honouring the one-directional rule (§1.3):
+
+| Topic | Direction | Payload | Retained |
+|-------|-----------|---------|----------|
+| `<base>/status` | control → HMI | `StatusMessage` JSON | yes (last state) |
+| `<base>/event`  | control → HMI | `EventMessage` JSON  | no (stream) |
+| `<base>/cmd`    | HMI → control | `CommandMessage` JSON | no |
+
+**Payload examples:**
+
+```jsonc
+// <base>/status
+{"level":2,"direction":"UP","phase":"MOVING","door":"CLOSED","velocity":100,
+ "emergencyActive":false,"motorError":false,"cabinCalls":[4],"hallUpCalls":[2],"hallDownCalls":[]}
+// <base>/event
+{"type":"ARRIVAL","level":3,"detail":""}
+// <base>/cmd
+{"type":"cabin","level":3}
+{"type":"hall","level":2,"direction":"UP"}
+{"type":"emergency","action":"engage"}   // or "clear"
+{"type":"reset"}
+```
+
+Activated with `--mqtt`. Without `--mqtt` (or if the broker is unreachable) the
+control system uses `LoggingHmiGateway` (console) and keeps running — it never
+depends on HMI/broker availability. The HMI side is `de.htwg.sysarch.hmi.HmiApplication`
+(a console reference client; replace with the partner group's GUI/web HMI — only the
+topic contract is fixed).
 
 ---
 
@@ -275,7 +343,9 @@ faculty GitLab wiki.
    against the live slave (see §6.2 warning).
 3. **Door-safe sensor** — assumed to be `reached` (`*r`, 0 mm). Confirm whether
    the safe window is `*r` only or the `*sl/*su` band.
-4. **HMI transport** — pending coordination with the partner HMI group.
+4. **HMI transport** — ✅ decided: **MQTT** (see §8). The JSON message contract in
+   `de.htwg.sysarch.mqtt` (topics + DTOs) must still be confirmed with the partner
+   HMI group and fixed in the faculty GitLab wiki.
 5. **Code submission deadline** — assignment lists "Fri 03.06.26" which predates
    today; likely a typo for **03.07.26**. Confirm via Moodle.
 
@@ -289,3 +359,10 @@ faculty GitLab wiki.
 - **2026-06-17** — Added interactive console driver (`--interactive`) and targeted
   controller tests (direction reversal §1.6 (10), emergency-during-travel resume
   §1.6 (12)). 13 unit tests, all green.
+- **2026-06-21** — HMI transport decided and implemented: **MQTT** (Eclipse Paho +
+  Gson). Added shared JSON contract `de.htwg.sysarch.mqtt` (topics + status/event/
+  command DTOs), control-side adapters `MqttHmiGateway` / `MqttCommandRouter` over a
+  testable `MqttConnection` port (`PahoMqttConnection`), `--mqtt` wiring with graceful
+  fallback to console logging, and a standalone reference HMI `de.htwg.sysarch.hmi.
+  HmiApplication` (depends only on the contract). 8 new broker-free tests; 21 total,
+  all green.

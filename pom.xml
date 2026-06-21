@@ -16,6 +16,9 @@
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.10.2</junit.version>
+        <!-- Default main class for `mvn exec:java`. Override on the CLI to launch the
+             separate HMI app, e.g. -Dexec.mainClass=de.htwg.sysarch.hmi.HmiApplication -->
+        <exec.mainClass>de.htwg.sysarch.elevator.ElevatorControlApplication</exec.mainClass>
     </properties>
 
     <dependencies>
@@ -33,6 +36,23 @@
             The code targets the internal ModbusConnection port, so wiring the
             real library is a single adapter implementation.
         -->
+
+        <!-- HMI transport: Modbus-style port, but for the control↔HMI link.
+             MQTT/TCP client (Eclipse Paho). Used only by the infrastructure
+             adapters (elevator.infrastructure.mqtt) and the separate HMI app
+             (de.htwg.sysarch.hmi) — the domain stays transport-agnostic. -->
+        <dependency>
+            <groupId>org.eclipse.paho</groupId>
+            <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+            <version>1.2.5</version>
+        </dependency>
+
+        <!-- JSON codec for the MQTT message contract (de.htwg.sysarch.mqtt). -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.11.0</version>
+        </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -59,7 +79,9 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.2.0</version>
                 <configuration>
-                    <mainClass>de.htwg.sysarch.elevator.ElevatorControlApplication</mainClass>
+                    <!-- Resolves the exec.mainClass property so -Dexec.mainClass=... on the
+                         CLI actually overrides the default (a literal here would not). -->
+                    <mainClass>${exec.mainClass}</mainClass>
                 </configuration>
             </plugin>
         </plugins>
