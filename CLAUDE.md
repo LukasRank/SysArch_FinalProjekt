@@ -79,7 +79,9 @@ mvn exec:java -Dexec.args="--sim --interactive"
 mvn exec:java -Dexec.args="--sim --mqtt"
 # Run against the real PLC (requires HTWG network/VPN):
 mvn exec:java -Dexec.args="--modbus"
-# Start the standalone reference HMI (separate process; talks only MQTT):
+# Start the graphical reference HMI (separate process; talks only MQTT):
+mvn exec:java -Dexec.mainClass=de.htwg.sysarch.hmi.HmiSwingApplication
+# …or the console reference HMI (headless/debug):
 mvn exec:java -Dexec.mainClass=de.htwg.sysarch.hmi.HmiApplication
 ```
 
@@ -168,11 +170,14 @@ de.htwg.sysarch.mqtt/                   # SHARED contract — the only thing bot
 └── JsonCodec.java                      # Gson facade used by both sides
 
 de.htwg.sysarch.hmi/                    # HMI side (reference/demo; partner group's responsibility)
-└── HmiApplication.java                 # standalone MQTT client; imports ONLY de.htwg.sysarch.mqtt
+├── HmiSwingApplication.java            # graphical HMI (Swing): shaft animation, status, buttons, log
+├── ShaftView.java                      # animated 4-level shaft + cabin/doors/call-lamps (pure view)
+└── HmiApplication.java                 # console HMI (headless/debug); same MQTT contract
 ```
 
-> The HMI app depends on the shared `mqtt` contract and Paho — **never** on any
-> `de.htwg.sysarch.elevator.*` class. That is the clear control↔HMI separation.
+> The HMI apps depend on the shared `mqtt` contract, Paho and the JDK (Swing) — **never**
+> on any `de.htwg.sysarch.elevator.*` class. That is the clear control↔HMI separation.
+> Swing needs no extra dependency.
 
 ### Interface convention (per assignment §1.3)
 
@@ -326,9 +331,10 @@ The control system keeps both ports; MQTT is just their adapter:
 
 Activated with `--mqtt`. Without `--mqtt` (or if the broker is unreachable) the
 control system uses `LoggingHmiGateway` (console) and keeps running — it never
-depends on HMI/broker availability. The HMI side is `de.htwg.sysarch.hmi.HmiApplication`
-(a console reference client; replace with the partner group's GUI/web HMI — only the
-topic contract is fixed).
+depends on HMI/broker availability. The HMI side ships as two reference clients:
+`de.htwg.sysarch.hmi.HmiSwingApplication` (graphical: animated shaft, status read-outs,
+call/emergency buttons, event log) and `HmiApplication` (console). Both consume only the
+topic contract, so the partner group can replace them with any GUI/web HMI.
 
 ---
 
@@ -366,3 +372,8 @@ topic contract is fixed).
   fallback to console logging, and a standalone reference HMI `de.htwg.sysarch.hmi.
   HmiApplication` (depends only on the contract). 8 new broker-free tests; 21 total,
   all green.
+- **2026-06-21** — Added a graphical HMI `de.htwg.sysarch.hmi.HmiSwingApplication`
+  (Swing, no extra dependency): animated 4-level shaft with moving cabin, sliding
+  doors, per-floor call lamps, live status read-outs, clickable call/emergency/reset
+  buttons and an event log. `ShaftView` is the pure shaft renderer. Still depends only
+  on the `mqtt` contract; the console `HmiApplication` is kept for headless/debug.
