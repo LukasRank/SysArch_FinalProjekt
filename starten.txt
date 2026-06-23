@@ -1,0 +1,7 @@
+Control (in E_Control):
+
+mvn exec:java "-Dexec.args=--modbus --mqtt"
+
+HMI (in E_HMI, anderer Rechner):
+
+mvn exec:java
