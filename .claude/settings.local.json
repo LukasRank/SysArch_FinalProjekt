@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(anthropic-skills:pptx)",
+      "Skill(anthropic-skills:pptx:*)",
+      "Bash(cat \"C:\\\\Users\\\\yasin\\\\AppData\\\\Roaming\\\\Claude\\\\local-agent-mode-sessions\\\\skills-plugin\\\\e1331f19-c74d-4a48-b28d-13423967c097\\\\7c52b206-d6f0-4db2-aeaa-a61ecd9541ca\\\\skills\\\\pptx\\\\pptxgenjs.md\" 2>/dev/null | head -100)",
+      "Bash(node /tmp/elevator_pres.js)"
+    ]
+  }
+}
