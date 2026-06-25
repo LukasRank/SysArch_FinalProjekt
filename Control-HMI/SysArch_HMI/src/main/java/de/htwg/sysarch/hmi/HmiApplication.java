@@ -34,18 +34,37 @@ public final class HmiApplication implements MqttCallback {
 
     private final String serverUri;
     private final MqttTopics topics;
+    private final String username;
+    private final String password;
     private MqttClient client;
 
-    public HmiApplication(String serverUri, String baseTopic) {
+    public HmiApplication(String serverUri, String baseTopic, String username, String password) {
         this.serverUri = serverUri;
         this.topics = new MqttTopics(baseTopic);
+        this.username = username;
+        this.password = password;
     }
 
     public static void main(String[] args) throws Exception {
-        String host = System.getProperty("mqtt.host", "localhost");
-        int port = Integer.parseInt(System.getProperty("mqtt.port", "1883"));
-        String base = System.getProperty("mqtt.baseTopic", "elevator/e");
-        new HmiApplication("tcp://" + host + ":" + port, base).run();
+        String host = resolve("mqtt.host", "MQTT_HOST", "localhost");
+        int port = Integer.parseInt(resolve("mqtt.port", "MQTT_PORT", "1883"));
+        String base = resolve("mqtt.baseTopic", "MQTT_BASE_TOPIC", "/SysArch/E");
+        String user = resolve("mqtt.username", "MQTT_USERNAME", "");
+        String pass = resolve("mqtt.password", "MQTT_PASSWORD", "");
+        new HmiApplication("tcp://" + host + ":" + port, base, user, pass).run();
+    }
+
+    /** Config override precedence: {@code -Dkey=...} system property &gt; env var &gt; default. */
+    private static String resolve(String key, String envKey, String def) {
+        String sys = System.getProperty(key);
+        if (sys != null && !sys.isEmpty()) {
+            return sys;
+        }
+        String env = System.getenv(envKey);
+        if (env != null && !env.isEmpty()) {
+            return env;
+        }
+        return def;
     }
 
     private void run() throws Exception {
@@ -55,6 +74,10 @@ public final class HmiApplication implements MqttCallback {
         opts.setAutomaticReconnect(true);
         opts.setCleanSession(true);
         opts.setConnectionTimeout(5);
+        if (username != null && !username.isEmpty()) {
+            opts.setUserName(username);
+            opts.setPassword(password == null ? new char[0] : password.toCharArray());
+        }
         client.connect(opts);
         client.subscribe(topics.status());
         client.subscribe(topics.event());

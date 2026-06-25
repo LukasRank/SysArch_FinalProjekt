@@ -83,7 +83,8 @@ public final class ElevatorControlApplication {
 
     /** Connect the MQTT HMI transport; on failure log and return null so the loop still runs. */
     private static MqttConnection tryConnectMqtt(ElevatorConfig config) {
-        MqttConnection conn = new PahoMqttConnection(config.mqttUrl(), "elevator-control-" + System.nanoTime());
+        MqttConnection conn = new PahoMqttConnection(config.mqttUrl(), "elevator-control-" + System.nanoTime(),
+                config.mqttUsername(), config.mqttPassword());
         try {
             conn.connect();
             return conn;

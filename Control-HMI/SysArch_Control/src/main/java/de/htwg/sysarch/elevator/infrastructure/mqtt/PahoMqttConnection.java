@@ -25,12 +25,22 @@ public final class PahoMqttConnection implements MqttConnection, MqttCallback {
 
     private final String serverUri;
     private final String clientId;
+    private final String username;
+    private final String password;
     private final Map<String, MessageHandler> handlers = new ConcurrentHashMap<>();
     private MqttClient client;
 
+    /** Anonymous connection (e.g. a local dev broker). */
     public PahoMqttConnection(String serverUri, String clientId) {
+        this(serverUri, clientId, null, null);
+    }
+
+    /** Authenticated connection; pass {@code null}/empty credentials for anonymous brokers. */
+    public PahoMqttConnection(String serverUri, String clientId, String username, String password) {
         this.serverUri = serverUri;
         this.clientId = clientId;
+        this.username = username;
+        this.password = password;
     }
 
     @Override
@@ -41,6 +51,10 @@ public final class PahoMqttConnection implements MqttConnection, MqttCallback {
         opts.setAutomaticReconnect(true);
         opts.setCleanSession(true);
         opts.setConnectionTimeout(5);
+        if (username != null && !username.isEmpty()) {
+            opts.setUserName(username);
+            opts.setPassword(password == null ? new char[0] : password.toCharArray());
+        }
         client.connect(opts);
         LOG.info(() -> "MQTT connected to " + serverUri + " as " + clientId);
     }

@@ -67,28 +67,47 @@ meaningful change.
 - **Tests:** JUnit 5.
 - **Logging:** `java.util.logging` (no extra dependency).
 
-```bash
-mvn compile          # compile
-mvn test             # run unit tests
-mvn package          # build jar
-# Run against the in-memory simulation (no lab/VPN needed):
-mvn exec:java -Dexec.args="--sim"
-# Interactive simulation: type calls/emergency at runtime (c/u/d <1-4>, e, r, x, h, q):
-mvn exec:java -Dexec.args="--sim --interactive"
-# Expose the HMI over MQTT (needs a broker; falls back to console logging if none):
-mvn exec:java -Dexec.args="--sim --mqtt"
-# Run against the real PLC (requires HTWG network/VPN):
-mvn exec:java -Dexec.args="--modbus"
-# Start the graphical reference HMI (separate process; talks only MQTT):
-mvn exec:java -Dexec.mainClass=de.htwg.sysarch.hmi.HmiSwingApplication
-# …or the console reference HMI (headless/debug):
-mvn exec:java -Dexec.mainClass=de.htwg.sysarch.hmi.HmiApplication
+**Repo layout:** the control system and the HMI are two **separate Maven modules** under
+`Control-HMI/` (`SysArch_Control/`, `SysArch_HMI/`), each built independently. They share
+only the `de.htwg.sysarch.mqtt` contract (a copy lives in each module) — never a code import.
+
+**Easiest path — PowerShell helper scripts** in `Control-HMI/` (they source the gitignored
+`mqtt-credentials.ps1` so the broker host/user/password are set once, never on the command
+line). First-time setup: `cp mqtt-credentials.example.ps1 mqtt-credentials.ps1` and fill in
+the group password.
+
+```powershell
+.\run-control.ps1           # control: --sim --mqtt against the lab broker (ea-pc165)
+.\run-control.ps1 -Modbus   # control against the real PLC (needs easymodbus, §9)
+.\run-hmi.ps1               # graphical Swing HMI on the laptop, MQTT to the lab broker
+.\run-hmi.ps1 -Console      # console HMI (headless/debug)
+.\deploy-control.ps1 -RzUser <rzlogin>        # build jar + scp it to ea-pc165, print run cmd
+.\deploy-control.ps1 -RzUser <rzlogin> -Run   # …and start it on the server
 ```
 
-> **Local MQTT broker for offline dev:** `brew install mosquitto && mosquitto -v`
-> (listens on `localhost:1883`). The lab broker is mosquitto on `ea-pc165` (HTWG VPN).
+**Raw Maven** (run inside the module dir; PowerShell: quote each `-D…` arg):
+
+```bash
+mvn compile                                   # compile
+mvn test                                      # run unit tests (SysArch_Control)
+mvn package                                   # SysArch_Control → target/elevator-control-0.1.0.jar (fat jar)
+mvn exec:java -Dexec.args="--sim"             # in-memory sim, no lab/VPN
+mvn exec:java -Dexec.args="--sim --interactive"   # type calls at runtime (c/u/d <1-4>, e, r, x, h, q)
+mvn exec:java -Dexec.args="--sim --mqtt"      # expose HMI over MQTT (falls back to console log if no broker)
+mvn exec:java -Dexec.args="--modbus"          # real PLC (HTWG network/VPN)
+mvn exec:java -Dexec.mainClass=de.htwg.sysarch.hmi.HmiSwingApplication   # graphical HMI (in SysArch_HMI)
+mvn exec:java -Dexec.mainClass=de.htwg.sysarch.hmi.HmiApplication        # console HMI
+```
+
+> **Lab broker:** mosquitto on `ea-pc165:1883` (HTWG VPN, per-group auth). Group E verified
+> working with `mosquitto_pub/sub -h ea-pc165.ei.htwg-konstanz.de -u E -P <pw> -t /SysArch/E`.
+> The control system connects with the same credentials (auth confirmed 2026-06-25).
+> For offline dev run a local anonymous broker (`brew install mosquitto && mosquitto -v`) and
+> set `mqtt.host=localhost`.
 >
-> **PowerShell:** quote the whole `-D` argument, e.g. `mvn exec:java "-Dexec.args=--sim"`.
+> ⚠️ **Git Bash mangles topics:** a base topic starting with `/` (e.g. `/SysArch/E`) gets
+> rewritten by MSYS path conversion into `C:/Program Files/Git/SysArch/E`. Use **PowerShell**
+> (the helper scripts do) to start the apps; don't pass `-Dmqtt.baseTopic=/...` from Git Bash.
 
 ---
 
@@ -282,10 +301,30 @@ Per level L∈{1..4}: `PIs_lLal, PIs_lLsl, PIs_lLr, PIs_lLsu, PIs_lLau`
 
 **HMI transport (MQTT):**
 
-- Broker: `localhost:1883` by default (offline dev); lab broker is mosquitto on
-  `ea-pc165` (HTWG VPN).
-- Base topic: `elevator/e` (status/event/cmd appended).
-- Keys: `mqtt.host`, `mqtt.port`, `mqtt.baseTopic`.
+- Broker: lab mosquitto on `ea-pc165:1883` (already running as a service; you do **not**
+  start it). Requires per-group credentials; topics live under `/SysArch/…` (renamed
+  from `/22WS-SysArch/…` in the lab handout). For offline dev run a local anonymous
+  broker and set `mqtt.host=localhost` with empty credentials.
+- Base topic: `/SysArch/E` (status/event/cmd appended).
+- Keys: `mqtt.host`, `mqtt.port`, `mqtt.baseTopic`, `mqtt.username`, `mqtt.password`.
+- **Credentials are never committed.** They default to empty and are supplied at runtime;
+  precedence is `-Dmqtt.username=…` system property > `MQTT_USERNAME`/`MQTT_PASSWORD`
+  env var > properties file. Same keys on the control side (`ElevatorConfig`) and the
+  HMI apps (which read straight from system props/env, no classpath loader).
+
+**Deployment split (lab):** the broker and the control system both run on `ea-pc165`
+(control reaches the broker as `localhost:1883` and the PLC as `ea-pc111:506`); the HMI
+runs on the laptop and reaches the broker through an SSH tunnel
+(`ssh -L 1883:localhost:1883 FHKN.<rzuser>@ea-pc165.ei.htwg-konstanz.de`), then points at
+`mqtt.host=localhost`. `mvn package` builds a self-contained
+`target/elevator-control-0.1.0.jar` (maven-shade-plugin); run it on the server with
+`java -Dmqtt.host=localhost -Dmqtt.username=… -Dmqtt.password=… -jar elevator-control-0.1.0.jar --sim --mqtt`.
+`Control-HMI/deploy-control.ps1 -RzUser <rzlogin>` automates the build + `scp` to the server
+and prints (or, with `-Run`, executes) that command.
+
+**Credentials** are kept in the gitignored `Control-HMI/mqtt-credentials.ps1` (copied from
+`mqtt-credentials.example.ps1`); the helper scripts source it and pass the values as `-D`
+properties. They never live in git or in `application.properties` (which default to empty).
 
 Defaults live in `src/main/resources/application.properties` and
 `infrastructure/config/ElevatorConfig.java`.
@@ -306,7 +345,7 @@ The control system keeps both ports; MQTT is just their adapter:
 - `HmiGateway` (driven) — control → HMI: `ElevatorStatus` snapshots + logged
   `ElevatorEvent`s. MQTT adapter: `MqttHmiGateway`.
 
-**Topics** (`<base>` = `elevator/e`), honouring the one-directional rule (§1.3):
+**Topics** (`<base>` = `/SysArch/E`), honouring the one-directional rule (§1.3):
 
 | Topic | Direction | Payload | Retained |
 |-------|-----------|---------|----------|
@@ -377,3 +416,17 @@ topic contract, so the partner group can replace them with any GUI/web HMI.
   doors, per-floor call lamps, live status read-outs, clickable call/emergency/reset
   buttons and an event log. `ShaftView` is the pure shaft renderer. Still depends only
   on the `mqtt` contract; the console `HmiApplication` is kept for headless/debug.
+- **2026-06-23** — Lab-broker wiring: added MQTT username/password auth on both sides
+  (`PahoMqttConnection` + HMI apps), with credentials resolved at runtime
+  (`-Dmqtt.username/password` > `MQTT_USERNAME`/`MQTT_PASSWORD` env > properties, empty
+  default so secrets stay out of git). Switched the base topic to the lab namespace
+  `/SysArch/E`. Added maven-shade-plugin so `mvn package` yields a runnable
+  `elevator-control-0.1.0.jar` for server deployment, and documented the SSH-tunnel
+  deployment split (broker+control on `ea-pc165`, HMI on the laptop) in §7.
+- **2026-06-25** — Made the split setup turnkey. Control and HMI are now separate Maven
+  modules under `Control-HMI/`. Added PowerShell helper scripts (`run-control.ps1`,
+  `run-hmi.ps1`, `deploy-control.ps1`) that source a gitignored `mqtt-credentials.ps1`
+  (template: `mqtt-credentials.example.ps1`) so host/user/password are set once and stay
+  out of git. **Verified the control system authenticates against the lab broker**
+  (`ea-pc165:1883`, user `E`). Documented the Git-Bash `/topic` MSYS-mangling gotcha
+  (use PowerShell) and the `deploy-control.ps1` build+scp flow in §3/§7.

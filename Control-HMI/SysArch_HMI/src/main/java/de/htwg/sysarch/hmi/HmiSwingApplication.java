@@ -62,6 +62,8 @@ public final class HmiSwingApplication implements MqttCallback {
 
     private final String serverUri;
     private final MqttTopics topics;
+    private final String username;
+    private final String password;
     private MqttClient client;
 
     // UI
@@ -78,18 +80,35 @@ public final class HmiSwingApplication implements MqttCallback {
     private final JButton[] upButtons = new JButton[LEVELS + 1];
     private final JButton[] downButtons = new JButton[LEVELS + 1];
 
-    public HmiSwingApplication(String serverUri, String baseTopic) {
+    public HmiSwingApplication(String serverUri, String baseTopic, String username, String password) {
         this.serverUri = serverUri;
         this.topics = new MqttTopics(baseTopic);
+        this.username = username;
+        this.password = password;
     }
 
     public static void main(String[] args) {
-        String host = System.getProperty("mqtt.host", "localhost");
-        int port = Integer.parseInt(System.getProperty("mqtt.port", "1883"));
-        String base = System.getProperty("mqtt.baseTopic", "elevator/e");
-        HmiSwingApplication app = new HmiSwingApplication("tcp://" + host + ":" + port, base);
+        String host = resolve("mqtt.host", "MQTT_HOST", "localhost");
+        int port = Integer.parseInt(resolve("mqtt.port", "MQTT_PORT", "1883"));
+        String base = resolve("mqtt.baseTopic", "MQTT_BASE_TOPIC", "/SysArch/E");
+        String user = resolve("mqtt.username", "MQTT_USERNAME", "");
+        String pass = resolve("mqtt.password", "MQTT_PASSWORD", "");
+        HmiSwingApplication app = new HmiSwingApplication("tcp://" + host + ":" + port, base, user, pass);
         SwingUtilities.invokeLater(app::buildAndShow);
         app.connect();
+    }
+
+    /** Config override precedence: {@code -Dkey=...} system property &gt; env var &gt; default. */
+    private static String resolve(String key, String envKey, String def) {
+        String sys = System.getProperty(key);
+        if (sys != null && !sys.isEmpty()) {
+            return sys;
+        }
+        String env = System.getenv(envKey);
+        if (env != null && !env.isEmpty()) {
+            return env;
+        }
+        return def;
     }
 
     // --------------------------------------------------------------- UI build
@@ -263,6 +282,10 @@ public final class HmiSwingApplication implements MqttCallback {
             opts.setAutomaticReconnect(true);
             opts.setCleanSession(true);
             opts.setConnectionTimeout(5);
+            if (username != null && !username.isEmpty()) {
+                opts.setUserName(username);
+                opts.setPassword(password == null ? new char[0] : password.toCharArray());
+            }
             client.connect(opts);
             client.subscribe(topics.status());
             client.subscribe(topics.event());
