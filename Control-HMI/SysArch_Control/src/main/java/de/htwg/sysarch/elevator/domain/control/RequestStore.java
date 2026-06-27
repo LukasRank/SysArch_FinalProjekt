@@ -76,11 +76,14 @@ public final class RequestStore {
     }
 
     public boolean hasHallCall(Level level, Direction direction) {
-        return switch (direction) {
-            case UP -> hallUp.contains(level);
-            case DOWN -> hallDown.contains(level);
-            case NONE -> false;
-        };
+        switch (direction) {
+            case UP:
+                return hallUp.contains(level);
+            case DOWN:
+                return hallDown.contains(level);
+            default:
+                return false;
+        }
     }
 
     public boolean hasAnyRequestAt(Level level) {
@@ -96,11 +99,14 @@ public final class RequestStore {
     }
 
     public boolean hasRequestsBeyond(Level level, Direction direction) {
-        return switch (direction) {
-            case UP -> hasRequestsAbove(level);
-            case DOWN -> hasRequestsBelow(level);
-            case NONE -> false;
-        };
+        switch (direction) {
+            case UP:
+                return hasRequestsAbove(level);
+            case DOWN:
+                return hasRequestsBelow(level);
+            default:
+                return false;
+        }
     }
 
     /**

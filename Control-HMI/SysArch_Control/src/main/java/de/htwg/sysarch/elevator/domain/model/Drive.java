@@ -30,10 +30,16 @@ public enum Drive {
 
     /** The drive for a direction/speed pair; OFF/CRAWL map to {@link #OFF} (no coil). */
     public static Drive of(Direction d, Speed s) {
-        return switch (s) {
-            case OFF, CRAWL -> OFF;
-            case V1 -> d == Direction.UP ? UP_V1 : d == Direction.DOWN ? DOWN_V1 : OFF;
-            case V2 -> d == Direction.UP ? UP_V2 : d == Direction.DOWN ? DOWN_V2 : OFF;
-        };
+        switch (s) {
+            case OFF:
+            case CRAWL:
+                return OFF;
+            case V1:
+                return d == Direction.UP ? UP_V1 : d == Direction.DOWN ? DOWN_V1 : OFF;
+            case V2:
+                return d == Direction.UP ? UP_V2 : d == Direction.DOWN ? DOWN_V2 : OFF;
+            default:
+                throw new IllegalArgumentException("unknown speed: " + s);
+        }
     }
 }

@@ -5,16 +5,48 @@ import java.util.EnumMap;
 import java.util.Map;
 
 /** Immutable snapshot of all PLC inputs read in one control cycle (assignment §4.1). */
-public record PlcInputs(
-        Map<Level, LevelSensors> levels,
-        boolean doorOpened,
-        boolean doorClosed,
-        boolean motorReady,
-        boolean motorOn,
-        boolean motorError,
-        int velocityCmPerS,
-        long plcCycles,
-        int aufzugId) {
+public final class PlcInputs {
+
+    private final Map<Level, LevelSensors> levels;
+    private final boolean doorOpened;
+    private final boolean doorClosed;
+    private final boolean motorReady;
+    private final boolean motorOn;
+    private final boolean motorError;
+    private final int velocityCmPerS;
+    private final long plcCycles;
+    private final int aufzugId;
+
+    public PlcInputs(
+            Map<Level, LevelSensors> levels,
+            boolean doorOpened,
+            boolean doorClosed,
+            boolean motorReady,
+            boolean motorOn,
+            boolean motorError,
+            int velocityCmPerS,
+            long plcCycles,
+            int aufzugId) {
+        this.levels = levels;
+        this.doorOpened = doorOpened;
+        this.doorClosed = doorClosed;
+        this.motorReady = motorReady;
+        this.motorOn = motorOn;
+        this.motorError = motorError;
+        this.velocityCmPerS = velocityCmPerS;
+        this.plcCycles = plcCycles;
+        this.aufzugId = aufzugId;
+    }
+
+    public Map<Level, LevelSensors> levels() { return levels; }
+    public boolean doorOpened() { return doorOpened; }
+    public boolean doorClosed() { return doorClosed; }
+    public boolean motorReady() { return motorReady; }
+    public boolean motorOn() { return motorOn; }
+    public boolean motorError() { return motorError; }
+    public int velocityCmPerS() { return velocityCmPerS; }
+    public long plcCycles() { return plcCycles; }
+    public int aufzugId() { return aufzugId; }
 
     public LevelSensors at(Level level) {
         return levels.getOrDefault(level, LevelSensors.NONE);

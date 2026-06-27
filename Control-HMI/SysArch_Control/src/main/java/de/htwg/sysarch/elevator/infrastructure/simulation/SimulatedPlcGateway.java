@@ -96,31 +96,31 @@ public final class SimulatedPlcGateway implements PlcGateway {
 
     private void updateDoor(long now) {
         switch (door) {
-            case CLOSED -> {
+            case CLOSED:
                 if (last.doorOpen()) {
                     door = Door.OPENING;
                     doorTimerEndsAt = now + DOOR_TRAVEL_MS;
                 }
-            }
-            case OPENING -> {
+                break;
+            case OPENING:
                 if (now >= doorTimerEndsAt) {
                     door = Door.OPEN;
                 }
-            }
-            case OPEN -> {
+                break;
+            case OPEN:
                 if (last.doorClose()) {
                     door = Door.CLOSING;
                     doorTimerEndsAt = now + DOOR_TRAVEL_MS;
                 }
-            }
-            case CLOSING -> {
+                break;
+            case CLOSING:
                 if (last.doorOpen()) {
                     door = Door.OPENING;
                     doorTimerEndsAt = now + DOOR_TRAVEL_MS;
                 } else if (now >= doorTimerEndsAt) {
                     door = Door.CLOSED;
                 }
-            }
+                break;
         }
     }
 

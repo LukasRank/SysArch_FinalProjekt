@@ -48,18 +48,34 @@ public final class InteractiveConsole implements Runnable {
         String[] parts = line.split("\\s+");
         try {
             switch (parts[0].toLowerCase()) {
-                case "c" -> panel.pressCabinButton(level(parts[1]));
-                case "u" -> panel.pressHallButton(level(parts[1]), Direction.UP);
-                case "d" -> panel.pressHallButton(level(parts[1]), Direction.DOWN);
-                case "e" -> panel.engageEmergencyStop();
-                case "r" -> panel.resetEmergencyStop();
-                case "x" -> panel.resetSimulation();
-                case "h", "?" -> printHelp();
-                case "q" -> {
+                case "c":
+                    panel.pressCabinButton(level(parts[1]));
+                    break;
+                case "u":
+                    panel.pressHallButton(level(parts[1]), Direction.UP);
+                    break;
+                case "d":
+                    panel.pressHallButton(level(parts[1]), Direction.DOWN);
+                    break;
+                case "e":
+                    panel.engageEmergencyStop();
+                    break;
+                case "r":
+                    panel.resetEmergencyStop();
+                    break;
+                case "x":
+                    panel.resetSimulation();
+                    break;
+                case "h":
+                case "?":
+                    printHelp();
+                    break;
+                case "q":
                     running = false;
                     System.exit(0);
-                }
-                default -> LOG.info("unknown command: '" + line + "'  (type h for help)");
+                    break;
+                default:
+                    LOG.info("unknown command: '" + line + "'  (type h for help)");
             }
         } catch (RuntimeException ex) {
             LOG.info("invalid command: '" + line + "'  (" + ex.getMessage() + ")");
@@ -71,15 +87,14 @@ public final class InteractiveConsole implements Runnable {
     }
 
     private void printHelp() {
-        LOG.info("""
-                Interactive commands:
-                  c <1-4>  cabin call to level
-                  u <1-4>  hall call UP at level
-                  d <1-4>  hall call DOWN at level
-                  e        emergency stop
-                  r        reset emergency
-                  x        reset simulation (POreset)
-                  h        help
-                  q        quit""");
+        LOG.info("Interactive commands:\n"
+                + "  c <1-4>  cabin call to level\n"
+                + "  u <1-4>  hall call UP at level\n"
+                + "  d <1-4>  hall call DOWN at level\n"
+                + "  e        emergency stop\n"
+                + "  r        reset emergency\n"
+                + "  x        reset simulation (POreset)\n"
+                + "  h        help\n"
+                + "  q        quit");
     }
 }

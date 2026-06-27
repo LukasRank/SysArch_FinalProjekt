@@ -102,28 +102,38 @@ public final class ElevatorController {
 
     private void advance(PlcInputs in, RequestStore requests, long now, List<ElevatorEvent> events) {
         switch (phase) {
-            case IDLE -> handleIdle(requests, events);
-            case MOVING, DECELERATING, CRAWLING -> handleTravel(in, requests, events);
-            case DOOR_OPENING -> {
+            case IDLE:
+                handleIdle(requests, events);
+                break;
+            case MOVING:
+            case DECELERATING:
+            case CRAWLING:
+                handleTravel(in, requests, events);
+                break;
+            case DOOR_OPENING:
                 if (in.doorOpened()) {
                     phase = Phase.DOOR_OPEN;
                     dwellEndsAt = now + MIN_DWELL_MILLIS;
                     events.add(ElevatorEvent.of(ElevatorEvent.Type.DOOR_OPENED, currentLevel));
                 }
-            }
-            case DOOR_OPEN -> {
+                break;
+            case DOOR_OPEN:
                 if (now >= dwellEndsAt) {
                     phase = Phase.DOOR_CLOSING;
                     events.add(ElevatorEvent.of(ElevatorEvent.Type.DOOR_CLOSING, currentLevel));
                 }
-            }
-            case DOOR_CLOSING -> {
+                break;
+            case DOOR_CLOSING:
                 if (in.doorClosed()) {
                     events.add(ElevatorEvent.of(ElevatorEvent.Type.DOOR_CLOSED, currentLevel));
                     departFrom(currentLevel, requests, events);
                 }
-            }
-            case EMERGENCY -> { /* handled in step() before advance() */ }
+                break;
+            case EMERGENCY:
+                /* handled in step() before advance() */
+                break;
+            default:
+                break;
         }
     }
 
@@ -224,21 +234,29 @@ public final class ElevatorController {
     // ----------------------------------------------------------- output derivation
 
     private MotorCommand deriveMotor() {
-        return switch (phase) {
-            case MOVING -> MotorCommand.drive(travelDirection, Speed.V2);
-            case DECELERATING -> MotorCommand.drive(travelDirection, Speed.V1);
-            case CRAWLING -> MotorCommand.drive(travelDirection, Speed.CRAWL);
-            default -> MotorCommand.OFF;
-        };
+        switch (phase) {
+            case MOVING:
+                return MotorCommand.drive(travelDirection, Speed.V2);
+            case DECELERATING:
+                return MotorCommand.drive(travelDirection, Speed.V1);
+            case CRAWLING:
+                return MotorCommand.drive(travelDirection, Speed.CRAWL);
+            default:
+                return MotorCommand.OFF;
+        }
     }
 
     private DoorCommand deriveDoor(PlcInputs in) {
-        return switch (phase) {
-            case DOOR_OPENING -> DoorCommand.OPEN;
-            case DOOR_CLOSING -> DoorCommand.CLOSE;
-            case IDLE -> in.doorClosed() ? DoorCommand.NONE : DoorCommand.CLOSE;
-            default -> DoorCommand.NONE;
-        };
+        switch (phase) {
+            case DOOR_OPENING:
+                return DoorCommand.OPEN;
+            case DOOR_CLOSING:
+                return DoorCommand.CLOSE;
+            case IDLE:
+                return in.doorClosed() ? DoorCommand.NONE : DoorCommand.CLOSE;
+            default:
+                return DoorCommand.NONE;
+        }
     }
 
     private CycleResult buildResult(MotorCommand motor, DoorCommand door, boolean reset,

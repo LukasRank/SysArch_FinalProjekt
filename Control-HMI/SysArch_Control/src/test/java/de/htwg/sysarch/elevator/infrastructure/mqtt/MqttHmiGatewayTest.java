@@ -78,7 +78,16 @@ class MqttHmiGatewayTest {
 
     // ------------------------------------------------------------- fakes
 
-    private record Published(String topic, String payload, boolean retained) {
+    private static final class Published {
+        final String topic;
+        final String payload;
+        final boolean retained;
+
+        Published(String topic, String payload, boolean retained) {
+            this.topic = topic;
+            this.payload = payload;
+            this.retained = retained;
+        }
     }
 
     private static final class RecordingConnection implements MqttConnection {

@@ -70,11 +70,7 @@ public final class ShaftView extends JPanel {
         this.signedVelocity = velocity;
         this.phase = phase;
         this.emergency = emergency;
-        this.doorTarget = switch (door) {
-            case "OPEN" -> 1.0;
-            case "CLOSED" -> 0.0;
-            default -> 0.5; // MOVING / UNKNOWN
-        };
+        this.doorTarget = doorTargetFor(door);
         this.cabinCalls = toFlags(cabin);
         this.upCalls = toFlags(up);
         this.downCalls = toFlags(down);
@@ -262,12 +258,31 @@ public final class ShaftView extends JPanel {
         if (emergency) {
             return new Color(0xD32F2F);
         }
-        return switch (phase) {
-            case "MOVING" -> new Color(0x2E7D32);
-            case "DECELERATING", "CRAWLING" -> new Color(0xEF6C00);
-            case "DOOR_OPENING", "DOOR_OPEN", "DOOR_CLOSING" -> new Color(0x1565C0);
-            case "EMERGENCY" -> new Color(0xD32F2F);
-            default -> new Color(0x546E7A);
-        };
+        switch (phase) {
+            case "MOVING":
+                return new Color(0x2E7D32);
+            case "DECELERATING":
+            case "CRAWLING":
+                return new Color(0xEF6C00);
+            case "DOOR_OPENING":
+            case "DOOR_OPEN":
+            case "DOOR_CLOSING":
+                return new Color(0x1565C0);
+            case "EMERGENCY":
+                return new Color(0xD32F2F);
+            default:
+                return new Color(0x546E7A);
+        }
+    }
+
+    private static double doorTargetFor(String door) {
+        switch (door) {
+            case "OPEN":
+                return 1.0;
+            case "CLOSED":
+                return 0.0;
+            default:
+                return 0.5; // MOVING / UNKNOWN
+        }
     }
 }

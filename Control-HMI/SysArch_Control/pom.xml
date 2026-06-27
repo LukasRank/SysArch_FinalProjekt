@@ -13,7 +13,7 @@
     <description>Modbus/TCP control system for the HTWG elevator simulation (Group E / C2)</description>
 
     <properties>
-        <maven.compiler.release>17</maven.compiler.release>
+        <maven.compiler.release>11</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.10.2</junit.version>
         <exec.mainClass>de.htwg.sysarch.elevator.ElevatorControlApplication</exec.mainClass>

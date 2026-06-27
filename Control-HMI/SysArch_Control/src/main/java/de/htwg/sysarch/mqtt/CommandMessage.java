@@ -13,8 +13,10 @@ package de.htwg.sysarch.mqtt;
  *
  * The control side maps these onto its {@code OperatorPanel} driving port; the HMI
  * builds them with the factory methods below so neither side hard-codes JSON.
+ *
+ * <p>Field names are the JSON keys (consumed by Gson); keep them stable across both modules.
  */
-public record CommandMessage(String type, Integer level, String direction, String action) {
+public final class CommandMessage {
 
     public static final String CABIN = "cabin";
     public static final String HALL = "hall";
@@ -24,6 +26,23 @@ public record CommandMessage(String type, Integer level, String direction, Strin
     /** {@code action} values for {@link #EMERGENCY}. */
     public static final String ENGAGE = "engage";
     public static final String CLEAR = "clear";
+
+    private final String type;
+    private final Integer level;
+    private final String direction;
+    private final String action;
+
+    public CommandMessage(String type, Integer level, String direction, String action) {
+        this.type = type;
+        this.level = level;
+        this.direction = direction;
+        this.action = action;
+    }
+
+    public String type() { return type; }
+    public Integer level() { return level; }
+    public String direction() { return direction; }
+    public String action() { return action; }
 
     public static CommandMessage cabin(int level) {
         return new CommandMessage(CABIN, level, null, null);

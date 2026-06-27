@@ -33,10 +33,13 @@ public enum Level {
 
     /** The adjacent level in travel direction {@code d}, or empty at a terminal level. */
     public Optional<Level> neighbour(Direction d) {
-        return switch (d) {
-            case UP -> isHighest() ? Optional.empty() : Optional.of(values()[ordinal() + 1]);
-            case DOWN -> isLowest() ? Optional.empty() : Optional.of(values()[ordinal() - 1]);
-            case NONE -> Optional.empty();
-        };
+        switch (d) {
+            case UP:
+                return isHighest() ? Optional.empty() : Optional.of(values()[ordinal() + 1]);
+            case DOWN:
+                return isLowest() ? Optional.empty() : Optional.of(values()[ordinal() - 1]);
+            default:
+                return Optional.empty();
+        }
     }
 }

@@ -105,31 +105,35 @@ public final class HmiApplication implements MqttCallback {
         }
         String[] p = line.split("\\s+");
         try {
-            return switch (p[0].toLowerCase()) {
-                case "c" -> CommandMessage.cabin(Integer.parseInt(p[1]));
-                case "u" -> CommandMessage.hall(Integer.parseInt(p[1]), "UP");
-                case "d" -> CommandMessage.hall(Integer.parseInt(p[1]), "DOWN");
-                case "e" -> CommandMessage.emergencyEngage();
-                case "r" -> CommandMessage.emergencyClear();
-                case "x" -> CommandMessage.reset();
-                case "h", "?" -> {
+            switch (p[0].toLowerCase()) {
+                case "c":
+                    return CommandMessage.cabin(Integer.parseInt(p[1]));
+                case "u":
+                    return CommandMessage.hall(Integer.parseInt(p[1]), "UP");
+                case "d":
+                    return CommandMessage.hall(Integer.parseInt(p[1]), "DOWN");
+                case "e":
+                    return CommandMessage.emergencyEngage();
+                case "r":
+                    return CommandMessage.emergencyClear();
+                case "x":
+                    return CommandMessage.reset();
+                case "h":
+                case "?":
                     printHelp();
-                    yield null;
-                }
-                case "q" -> {
+                    return null;
+                case "q":
                     try {
                         client.disconnect();
                     } catch (MqttException ignored) {
                         // shutting down anyway
                     }
                     System.exit(0);
-                    yield null;
-                }
-                default -> {
+                    return null;
+                default:
                     System.out.println("unknown command: '" + line + "'  (h for help)");
-                    yield null;
-                }
-            };
+                    return null;
+            }
         } catch (RuntimeException ex) {
             System.out.println("invalid command: '" + line + "'  (" + ex.getMessage() + ")");
             return null;
@@ -143,16 +147,15 @@ public final class HmiApplication implements MqttCallback {
     }
 
     private void printHelp() {
-        System.out.println("""
-                HMI commands (published to the control system over MQTT):
-                  c <1-4>  cabin call to level
-                  u <1-4>  hall call UP at level
-                  d <1-4>  hall call DOWN at level
-                  e        emergency stop
-                  r        reset emergency
-                  x        reset simulation
-                  h        help
-                  q        quit""");
+        System.out.println("HMI commands (published to the control system over MQTT):\n"
+                + "  c <1-4>  cabin call to level\n"
+                + "  u <1-4>  hall call UP at level\n"
+                + "  d <1-4>  hall call DOWN at level\n"
+                + "  e        emergency stop\n"
+                + "  r        reset emergency\n"
+                + "  x        reset simulation\n"
+                + "  h        help\n"
+                + "  q        quit");
     }
 
     // ---------------------------------------------------------- MqttCallback (control → HMI)

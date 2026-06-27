@@ -56,7 +56,9 @@ meaningful change.
 
 ## 3. Tech stack & commands
 
-- **Language/Build:** Java 17, Maven.
+- **Language/Build:** Java 11, Maven. (Targets Java 11 bytecode so the fat jar runs on the
+  lab server `ea-pc165`, whose system JRE is OpenJDK 11 — no records/switch-expressions/
+  text-blocks in the source.)
 - **Modbus:** Modbus/TCP master. Library intended: the course-provided
   `easymodbus-maven` (see [§9](#9-open-questions--decisions-needed) — coordinates
   to be confirmed). Until wired in, the code targets a thin internal
@@ -430,3 +432,10 @@ topic contract, so the partner group can replace them with any GUI/web HMI.
   out of git. **Verified the control system authenticates against the lab broker**
   (`ea-pc165:1883`, user `E`). Documented the Git-Bash `/topic` MSYS-mangling gotcha
   (use PowerShell) and the `deploy-control.ps1` build+scp flow in §3/§7.
+- **2026-06-25** — Lowered the build target from Java 17 to **Java 11** so the deployed jar
+  runs on the lab server (`ea-pc165` ships only OpenJDK 11; class-file 61 failed with
+  `UnsupportedClassVersionError`). Rewrote all Java-17-only syntax to Java-11 equivalents
+  (records → final classes with explicit accessors/equals/hashCode; switch-expressions/rules
+  → classic `switch`; text blocks → concatenated strings) across the domain model, control,
+  config, MQTT DTOs (both module copies) and the HMI apps. `maven.compiler.release=11` in
+  both POMs. All 21 tests still green; jar verified as class-file 55 (Java 11).

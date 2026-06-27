@@ -5,12 +5,44 @@ import java.io.InputStream;
 import java.util.Properties;
 
 /** Runtime configuration, loaded from {@code application.properties} (CLAUDE.md §7). */
-public record ElevatorConfig(
-        String modbusHost, int modbusPort, long cycleMillis, String group,
-        String mqttHost, int mqttPort, String mqttBaseTopic,
-        String mqttUsername, String mqttPassword) {
+public final class ElevatorConfig {
 
     private static final String RESOURCE = "application.properties";
+
+    private final String modbusHost;
+    private final int modbusPort;
+    private final long cycleMillis;
+    private final String group;
+    private final String mqttHost;
+    private final int mqttPort;
+    private final String mqttBaseTopic;
+    private final String mqttUsername;
+    private final String mqttPassword;
+
+    public ElevatorConfig(
+            String modbusHost, int modbusPort, long cycleMillis, String group,
+            String mqttHost, int mqttPort, String mqttBaseTopic,
+            String mqttUsername, String mqttPassword) {
+        this.modbusHost = modbusHost;
+        this.modbusPort = modbusPort;
+        this.cycleMillis = cycleMillis;
+        this.group = group;
+        this.mqttHost = mqttHost;
+        this.mqttPort = mqttPort;
+        this.mqttBaseTopic = mqttBaseTopic;
+        this.mqttUsername = mqttUsername;
+        this.mqttPassword = mqttPassword;
+    }
+
+    public String modbusHost() { return modbusHost; }
+    public int modbusPort() { return modbusPort; }
+    public long cycleMillis() { return cycleMillis; }
+    public String group() { return group; }
+    public String mqttHost() { return mqttHost; }
+    public int mqttPort() { return mqttPort; }
+    public String mqttBaseTopic() { return mqttBaseTopic; }
+    public String mqttUsername() { return mqttUsername; }
+    public String mqttPassword() { return mqttPassword; }
 
     public static ElevatorConfig load() {
         Properties p = new Properties();

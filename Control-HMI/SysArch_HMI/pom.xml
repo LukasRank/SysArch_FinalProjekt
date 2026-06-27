@@ -13,7 +13,7 @@
     <description>Human Machine Interface for the HTWG elevator control system. Communicates with the control system exclusively via MQTT (de.htwg.sysarch.mqtt contract).</description>
 
     <properties>
-        <maven.compiler.release>17</maven.compiler.release>
+        <maven.compiler.release>11</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Default: graphical Swing HMI. Override with -Dexec.mainClass=de.htwg.sysarch.hmi.HmiApplication for console. -->
         <exec.mainClass>de.htwg.sysarch.hmi.HmiSwingApplication</exec.mainClass>

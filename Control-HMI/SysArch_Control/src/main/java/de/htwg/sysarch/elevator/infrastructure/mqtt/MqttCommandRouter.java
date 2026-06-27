@@ -48,21 +48,26 @@ public final class MqttCommandRouter {
 
     private void dispatch(CommandMessage cmd) {
         switch (cmd.type()) {
-            case CommandMessage.CABIN ->
-                    panel.pressCabinButton(Level.ofNumber(required(cmd.level(), "level")));
-            case CommandMessage.HALL ->
-                    panel.pressHallButton(
-                            Level.ofNumber(required(cmd.level(), "level")),
-                            Direction.valueOf(required(cmd.direction(), "direction")));
-            case CommandMessage.EMERGENCY -> {
+            case CommandMessage.CABIN:
+                panel.pressCabinButton(Level.ofNumber(required(cmd.level(), "level")));
+                break;
+            case CommandMessage.HALL:
+                panel.pressHallButton(
+                        Level.ofNumber(required(cmd.level(), "level")),
+                        Direction.valueOf(required(cmd.direction(), "direction")));
+                break;
+            case CommandMessage.EMERGENCY:
                 if (CommandMessage.CLEAR.equals(cmd.action())) {
                     panel.resetEmergencyStop();
                 } else {
                     panel.engageEmergencyStop();
                 }
-            }
-            case CommandMessage.RESET -> panel.resetSimulation();
-            default -> LOG.warning("unknown command type: " + cmd.type());
+                break;
+            case CommandMessage.RESET:
+                panel.resetSimulation();
+                break;
+            default:
+                LOG.warning("unknown command type: " + cmd.type());
         }
     }
 
