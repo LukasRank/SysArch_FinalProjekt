@@ -1,0 +1,682 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- Encoding & Language ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{microtype}
+
+% --- Layout ---
+\usepackage[top=3cm, bottom=3cm, left=3cm, right=3cm]{geometry}
+\usepackage{parskip}
+\setlength{\parskip}{8pt}
+
+% --- Fonts ---
+\usepackage{lmodern}
+
+% --- Tables ---
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+\renewcommand{\arraystretch}{1.5}
+
+% --- Math ---
+\usepackage{amsmath}
+
+% --- Graphics ---
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+
+% --- Code Listings ---
+\usepackage{listings}
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{white},
+    numbers=left,
+    numberstyle=\tiny,
+    numbersep=8pt,
+    xleftmargin=14pt,
+    framexleftmargin=14pt,
+    showstringspaces=false,
+    captionpos=b,
+    aboveskip=10pt,
+    belowskip=6pt,
+}
+\usepackage{xcolor}
+
+% --- Headers & Footers ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Elevator Control System -- Group E (C2)}
+\fancyhead[R]{\small System Architecture -- HTWG Konstanz}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% --- Section Styling ---
+\usepackage{titlesec}
+\titleformat{\section}
+  {\large\bfseries}{\thesection}{1em}{}
+  [\vspace{-4pt}\rule{\linewidth}{0.5pt}\vspace{4pt}]
+\titleformat{\subsection}
+  {\normalsize\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+  {\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+\titlespacing{\section}{0pt}{24pt}{8pt}
+\titlespacing{\subsection}{0pt}{16pt}{4pt}
+\titlespacing{\subsubsection}{0pt}{12pt}{4pt}
+
+% --- Hyperlinks (black) ---
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=false,
+    hidelinks,
+    pdftitle={Elevator Control System -- Group E},
+    pdfauthor={Ruben Kaiser, Lukas Rank, Yasin Maier, Mevlut Atilla},
+}
+
+% --- Misc ---
+\usepackage{enumitem}
+\setlist[itemize]{itemsep=4pt, topsep=6pt, leftmargin=1.5em}
+\setlist[enumerate]{itemsep=4pt, topsep=6pt, leftmargin=1.5em}
+
+% New section always on a new page
+\newcommand{\sectionbreak}{\clearpage}
+
+% ======================================================================
+\begin{document}
+% ======================================================================
+
+% --- Title Page ---
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{center}
+
+\vspace*{2cm}
+
+\rule{\linewidth}{1.5pt}
+\vspace{0.5cm}
+
+{\Huge\bfseries Elevator Control System}\\[0.5cm]
+{\Large\bfseries and Human Machine Interface}
+
+\vspace{0.4cm}
+\rule{\linewidth}{1.5pt}
+
+\vspace{1.5cm}
+
+{\large System Architecture -- Project Documentation}\\[0.3cm]
+{\normalsize Faculty of Electrical Engineering and Information Technology}\\[0.2cm]
+{\normalsize HTWG Konstanz -- University of Applied Sciences}
+
+\vspace{2.5cm}
+
+{\large\bfseries Group E (C2)}
+
+\vspace{1cm}
+
+\begin{tabular}{ll}
+\toprule
+\textbf{Name} & \textbf{Role} \\
+\midrule
+Ruben Kaiser      & Control System \\
+Lukas Rank        & Control System \\
+Yasin Maier       & Human Machine Interface \\
+Mevl\"{u}t Atilla & Human Machine Interface \\
+\bottomrule
+\end{tabular}
+
+\vfill
+
+{\normalsize Summer Semester 2026}
+
+\end{center}
+\end{titlepage}
+
+% --- TOC ---
+\newpage
+\thispagestyle{empty}
+\tableofcontents
+\newpage
+
+% ======================================================================
+\section{Project Overview}
+% ======================================================================
+
+\subsection{Group Members and Responsibilities}
+
+Group E consists of four members organised into two sub-teams.
+Each member is responsible for at least one project domain.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Name} & \textbf{Team} & \textbf{Primary Domain} \\
+\midrule
+Ruben Kaiser      & Control System & Control logic, FSM, Modbus I/O mapping, overall architecture \\
+Lukas Rank        & Control System & MQTT transport (control side), in-memory simulation, unit tests \\
+Yasin Maier       & HMI            & Swing HMI, shaft animation, MQTT integration (HMI side) \\
+Mevl\"{u}t Atilla & HMI           & Console HMI, message contract design, integration testing \\
+\bottomrule
+\end{tabularx}
+\caption{Group members, teams and primary domains}
+\end{table}
+
+\subsection{Project Plan and Time Estimation}
+
+The project ran over approximately three active weeks in June 2026.
+The table below shows the estimated hours per person and domain.
+The total of roughly 160 hours corresponds to the expected workload
+for a 6-ECTS project (2 persons $\times$ 6 weeks $\times$ 12\,h/week).
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Domain} & \textbf{Ruben K.} & \textbf{Lukas R.} & \textbf{Yasin M.} & \textbf{Mevl. A.} & \textbf{Total} \\
+\midrule
+Architecture / Design   & 10\,h &  6\,h &  4\,h &  4\,h & 24\,h \\
+Domain \& Control Logic & 18\,h &  8\,h &  2\,h &  2\,h & 30\,h \\
+Modbus / Simulation     &  6\,h & 10\,h &  0\,h &  2\,h & 18\,h \\
+MQTT Transport          &  4\,h & 10\,h &  8\,h &  6\,h & 28\,h \\
+HMI (Swing / Console)   &  0\,h &  2\,h & 18\,h & 10\,h & 30\,h \\
+Testing                 &  4\,h &  8\,h &  2\,h &  4\,h & 18\,h \\
+Documentation           &  4\,h &  2\,h &  4\,h &  2\,h & 12\,h \\
+\midrule
+\textbf{Total} & \textbf{46\,h} & \textbf{46\,h} & \textbf{38\,h} & \textbf{30\,h} & \textbf{160\,h} \\
+\bottomrule
+\end{tabular}
+\caption{Estimated development effort in hours per person and domain}
+\end{table}
+
+\subsection{Weekly Work Report}
+
+\begin{longtable}{@{}lp{3.6cm}p{3.6cm}p{3.6cm}@{}}
+\toprule
+\textbf{Week} & \textbf{Ruben K. / Lukas R.} & \textbf{Yasin M.} & \textbf{Mevl\"{u}t A.} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Week} & \textbf{Ruben K. / Lukas R.} & \textbf{Yasin M.} & \textbf{Mevl\"{u}t A.} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\small\itshape continued on next page} \\
+\endfoot
+\bottomrule
+\endlastfoot
+
+Week 1 \newline (16.06)
+  & Architecture design, domain model, ports \& adapters scaffold, Level / Sensor enums
+  & Initial HMI concept, MQTT contract discussion
+  & MQTT contract discussion, console HMI skeleton \\[6pt]
+
+Week 2 \newline (23.06)
+  & Control FSM (SCAN logic), deceleration chain, RequestStore, SimulatedPlcGateway, 21 unit tests
+  & Swing HMI: shaft animation, cabin rendering, call buttons, event log
+  & Console HMI completion, MQTT command routing, integration testing \\[6pt]
+
+Week 3 \newline (30.06)
+  & MQTT wiring on control side, lab broker auth, deploy scripts, presentation
+  & HMI broker auth, live status display, emergency / reset buttons, presentation
+  & End-to-end testing with lab broker, documentation \\
+
+\caption{Weekly work report by person}
+\end{longtable}
+
+% ======================================================================
+\section{Design Considerations}
+% ======================================================================
+
+\subsection{Architectural Style: Hexagonal Architecture (Ports \& Adapters)}
+
+The system follows a \textbf{hexagonal (ports \& adapters)} architecture.
+The core control logic is completely isolated from I/O concerns -- it has no
+knowledge of Modbus, MQTT, or any external system.
+
+\begin{figure}[H]
+\centering
+\ttfamily\small
+\begin{tabular}{ccccc}
+  & \textit{(driving port)} & & \textit{(driven ports)} & \\[4pt]
+  HMI / Tests
+  & $\xrightarrow{\quad\textup{commands}\quad}$
+  & \fbox{\begin{tabular}{c}Application\\[-2pt]\scriptsize ElevatorControlService\end{tabular}}
+  & $\xrightarrow{\quad\textup{status/events}\quad}$
+  & HMI sink \\[16pt]
+  & & $\downarrow$ & & \\[4pt]
+  & & \fbox{Domain (pure logic)} & & \\[16pt]
+  & & $\downarrow$ & & \\[4pt]
+  & & \fbox{PlcGateway} & $\longrightarrow$ & PLC / Sim \\
+\end{tabular}
+\rmfamily
+\caption{Hexagonal architecture: the domain is isolated from all I/O by ports}
+\end{figure}
+
+This design was chosen because the assignment (§1.3) explicitly requires components
+with well-defined, unidirectional interfaces. Each interface is a port; each concrete
+I/O implementation is a replaceable adapter.
+
+\subsection{Module Structure}
+
+The project is split into two independent Maven modules under \texttt{Control-HMI/}:
+
+\begin{itemize}
+    \item \texttt{SysArch\_Control} -- the elevator control system
+    \item \texttt{SysArch\_HMI} -- the reference HMI (graphical Swing + headless console)
+\end{itemize}
+
+The two modules share \textbf{only} the JSON message contract in package
+\texttt{de.htwg.sysarch.mqtt} (a copy lives in each). There is no
+cross-module Java import between control and HMI.
+
+\subsubsection{Control System Package Map}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Package / Class} & \textbf{Responsibility} \\
+\midrule
+\texttt{domain/model/}                      & Value objects: Level, Direction, Speed, Drive, LevelSensors, \ldots \\
+\texttt{domain/control/ElevatorController}  & FSM -- one \texttt{step()} call per 100\,ms cycle \\
+\texttt{domain/control/RequestStore}        & Pending cabin and hall calls; SCAN predicates \\
+\texttt{application/ElevatorControlService} & Orchestrates one cycle; implements OperatorPanel \\
+\texttt{application/ControlLoop}            & Fixed-rate 100\,ms scheduler \\
+\texttt{application/port/in/OperatorPanel}  & Driving port: HMI sends calls / commands here \\
+\texttt{application/port/out/PlcGateway}    & Driven port: read sensors / write actuators \\
+\texttt{application/port/out/HmiGateway}    & Driven port: publish status \& events to HMI \\
+\texttt{infrastructure/modbus/}             & Modbus/TCP adapter (ModbusIoMap, ModbusPlcGateway) \\
+\texttt{infrastructure/simulation/}         & In-memory PLC simulation for offline development \\
+\texttt{infrastructure/mqtt/}               & MQTT adapter (MqttHmiGateway, MqttCommandRouter) \\
+\texttt{infrastructure/console/}            & Interactive stdin driver (\texttt{--interactive} mode) \\
+\bottomrule
+\end{tabularx}
+\caption{Control system package map}
+\end{table}
+
+\clearpage
+\subsection{Interface Convention}
+
+Following §1.3 of the assignment, interface variables are \textbf{writable in one
+direction only}:
+
+\begin{itemize}
+    \item \textbf{OperatorPanel} (driving) -- the HMI writes commands into the
+          control system: cabin calls, hall calls, emergency stop, and reset.
+    \item \textbf{HmiGateway} (driven) -- the control system writes state out to
+          the HMI: immutable \texttt{ElevatorStatus} snapshots and an
+          \texttt{ElevatorEvent} stream.
+\end{itemize}
+
+The HMI has no direct write access to any internal control state.
+
+\subsection{Control Logic: SCAN Algorithm}
+
+The elevator implements the \textbf{collective-control (SCAN / look) algorithm}:
+
+\begin{enumerate}
+    \item When idle, move toward the oldest pending request.
+    \item While moving, stop at every request in the current direction
+          (matching hall call or cabin call at that level).
+    \item When no more requests exist ahead, reverse if requests exist behind.
+    \item Otherwise become idle.
+\end{enumerate}
+
+\subsubsection{Finite State Machine}
+
+The \texttt{ElevatorController} cycles through the following phases on each
+100\,ms tick:
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Phase} & \textbf{Description} \\
+\midrule
+\texttt{IDLE}         & No pending requests; motor off. \\
+\texttt{MOVING}       & Travelling at full speed (V2) toward the next target level. \\
+\texttt{DECELERATING} & Approach sensor triggered; speed reduced to V1. \\
+\texttt{CRAWLING}     & Safety sensor triggered; motor set to crawl for fine positioning. \\
+\texttt{DWELL}        & Cabin at level: door opens, minimum 6\,s wait, door closes. \\
+\texttt{EMERGENCY}    & Emergency stop engaged; motor off at any position. \\
+\bottomrule
+\end{tabularx}
+\caption{Elevator FSM phases}
+\end{table}
+
+\clearpage
+\subsubsection{Deceleration Chain}
+
+When approaching a target level $T$, the motor steps down through three speed
+stages triggered by the level sensors:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{llll}
+\toprule
+\textbf{Direction} & \textbf{Sensor} & \textbf{Offset} & \textbf{Action} \\
+\midrule
+UP   & approach lower (\texttt{al}) & $-1.5$\,m  & V2 $\rightarrow$ V1 \\
+UP   & safety lower   (\texttt{sl}) & $-50$\,mm  & V1 $\rightarrow$ CRAWL \\
+UP   & reached        (\texttt{r})  & $0$\,mm    & CRAWL $\rightarrow$ STOP \\
+\midrule
+DOWN & approach upper (\texttt{au}) & $+1.5$\,m  & V2 $\rightarrow$ V1 \\
+DOWN & safety upper   (\texttt{su}) & $+50$\,mm  & V1 $\rightarrow$ CRAWL \\
+DOWN & reached        (\texttt{r})  & $0$\,mm    & CRAWL $\rightarrow$ STOP \\
+\bottomrule
+\end{tabular}
+\caption{Deceleration chain triggered by level sensors}
+\end{table}
+
+\subsection{HMI Interface Boundary}
+
+The control system and the HMI run as \textbf{separate processes} and communicate
+exclusively over \textbf{MQTT} (Eclipse Mosquitto on \texttt{ea-pc165:1883}).
+They share only the JSON message contract -- neither process imports the other's
+classes.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{llXl}
+\toprule
+\textbf{Topic} & \textbf{Direction} & \textbf{Payload} & \textbf{Retained} \\
+\midrule
+\texttt{/SysArch/E/status} & Control $\to$ HMI & \texttt{StatusMessage} JSON (full state snapshot) & yes \\
+\texttt{/SysArch/E/event}  & Control $\to$ HMI & \texttt{EventMessage} JSON (arrival, door, alarm)  & no  \\
+\texttt{/SysArch/E/cmd}    & HMI $\to$ Control & \texttt{CommandMessage} JSON (call, emergency, reset) & no \\
+\bottomrule
+\end{tabularx}
+\caption{MQTT topic contract between control system and HMI}
+\end{table}
+
+\clearpage
+Example payloads:
+
+\begin{lstlisting}[language={}, caption={Status message (control to HMI)},
+  basicstyle=\ttfamily\footnotesize, xleftmargin=0pt, framexleftmargin=0pt,
+  numbers=none]
+{
+  "level": 2,  "direction": "UP",  "phase": "MOVING",
+  "door": "CLOSED",  "velocity": 100,
+  "emergencyActive": false,  "motorError": false,
+  "cabinCalls": [4],  "hallUpCalls": [2],  "hallDownCalls": []
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language={}, caption={Command messages (HMI to control)},
+  basicstyle=\ttfamily\footnotesize, xleftmargin=0pt, framexleftmargin=0pt,
+  numbers=none]
+{"type": "cabin",     "level": 3}
+{"type": "hall",      "level": 2, "direction": "UP"}
+{"type": "emergency", "action": "engage"}
+{"type": "reset"}
+\end{lstlisting}
+
+% ======================================================================
+\section{Test Plan and Test Execution}
+% ======================================================================
+
+\subsection{Test Strategy}
+
+All tests are written with \textbf{JUnit 5}. Because the domain is pure Java
+with no I/O dependencies, every FSM transition and SCAN predicate can be tested
+without a PLC or MQTT broker. The MQTT adapters are verified against an
+in-memory \texttt{MqttConnection} stub -- no running broker is required.
+
+\subsection{Test Cases}
+
+\begin{longtable}{@{}p{5cm}p{7cm}p{1.8cm}@{}}
+\toprule
+\textbf{Test method} & \textbf{What is verified} & \textbf{Result} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Test method} & \textbf{What is verified} & \textbf{Result} \\
+\midrule
+\endhead
+\endfoot
+\bottomrule
+\endlastfoot
+
+\texttt{fullStopSequence\-ForCabinCallAbove}
+  & FSM transitions IDLE $\to$ MOVING $\to$ DECELERATING $\to$ CRAWLING $\to$ DWELL
+    on a cabin call above the current level.
+  & PASS \\[4pt]
+
+\texttt{hallCallPickupOn\-PassingFloor}
+  & Elevator already moving up picks up a hall-up call at an intermediate floor.
+  & PASS \\[4pt]
+
+\texttt{directionReversal\-WhenNoRequestsAhead}
+  & After serving all upward requests, controller reverses to DOWN when
+    downward requests exist (req.~10).
+  & PASS \\[4pt]
+
+\texttt{emergencyStop\-DuringTravel}
+  & Emergency stop halts the motor immediately; after reset, the elevator
+    resumes toward the next scheduled stop (req.~12).
+  & PASS \\[4pt]
+
+\texttt{requestStoreScan\-Predicates}
+  & \texttt{shouldStopAt()} and \texttt{hasRequestBeyond()} return correct
+    results for mixed cabin and hall calls in both directions.
+  & PASS \\[4pt]
+
+\texttt{mqttHmiGateway\-PublishesStatus}
+  & \texttt{MqttHmiGateway} serialises \texttt{ElevatorStatus} to the correct
+    topic with well-formed JSON.
+  & PASS \\[4pt]
+
+\texttt{mqttCommandRouter\-DispatchesCabinCall}
+  & JSON \texttt{\{"type":"cabin","level":3\}} on the cmd topic is routed
+    to \texttt{OperatorPanel.cabinCall(LEVEL\_3)}.
+  & PASS \\[4pt]
+
+\texttt{mqttCommandRouter\-DispatchesEmergency}
+  & \texttt{\{"type":"emergency","action":"engage"\}} triggers
+    \texttt{OperatorPanel.emergencyStop()}.
+  & PASS \\
+
+\caption{Selected unit test results -- all 21 tests pass}
+\end{longtable}
+
+\subsection{Integration Test (Lab)}
+
+The full system was verified end-to-end against the HTWG lab infrastructure:
+
+\begin{itemize}
+    \item Control system connected and authenticated to the MQTT broker at
+          \texttt{ea-pc165:1883} using the group credentials for Group E.
+    \item Swing HMI connected from a laptop via an SSH tunnel
+          (\texttt{localhost:1883 $\to$ ea-pc165:1883}).
+    \item Cabin and hall calls issued from the HMI were received and executed
+          by the control system; the live shaft view updated accordingly.
+    \item Emergency stop and reset round-trip verified.
+\end{itemize}
+
+\textit{Note:} The Modbus connection to the real PLC (\texttt{ea-pc111:506})
+was not fully tested because the \texttt{easymodbus-maven} library integration
+is still pending. All functional verification used the in-memory simulation mode.
+
+% ======================================================================
+\section{Development Effort}
+% ======================================================================
+
+The table below summarises the actual development effort based on the weekly
+work reports. The project totals approximately 160 hours across all four members.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Domain} & \textbf{Ruben K.} & \textbf{Lukas R.} & \textbf{Yasin M.} & \textbf{Mevl. A.} & \textbf{Total} \\
+\midrule
+Architecture / Design   & 10\,h &  6\,h &  4\,h &  4\,h & 24\,h \\
+Domain \& Control Logic & 18\,h &  8\,h &  2\,h &  2\,h & 30\,h \\
+Modbus / Simulation     &  6\,h & 10\,h &  0\,h &  2\,h & 18\,h \\
+MQTT Transport          &  4\,h & 10\,h &  8\,h &  6\,h & 28\,h \\
+HMI (Swing / Console)   &  0\,h &  2\,h & 18\,h & 10\,h & 30\,h \\
+Testing                 &  4\,h &  8\,h &  2\,h &  4\,h & 18\,h \\
+Documentation           &  4\,h &  2\,h &  4\,h &  2\,h & 12\,h \\
+\midrule
+\textbf{Total} & \textbf{46\,h} & \textbf{46\,h} & \textbf{38\,h} & \textbf{30\,h} & \textbf{160\,h} \\
+\bottomrule
+\end{tabular}
+\caption{Development effort per person and domain}
+\end{table}
+
+% ======================================================================
+\section{Project Evaluation and Potential Improvements}
+% ======================================================================
+
+\subsection{What Went Well}
+
+\begin{itemize}
+    \item \textbf{Architecture.}
+          The hexagonal approach paid off immediately: the full SCAN control logic
+          was implemented and tested against the in-memory simulation before any
+          MQTT or Modbus code existed. Replacing the simulation with a real adapter
+          required zero changes to the domain.
+
+    \item \textbf{MQTT contract.}
+          Agreeing on the shared JSON contract in week 1 allowed both sub-teams to
+          develop independently. Integration was essentially friction-free.
+
+    \item \textbf{Resilient transport.}
+          The control system never depends on broker availability. Without
+          \texttt{--mqtt}, or when the broker is unreachable, it falls back to
+          console logging and keeps running. This made offline development
+          straightforward.
+
+    \item \textbf{Test coverage.}
+          21 unit tests cover all FSM transitions, SCAN predicates, MQTT
+          serialisation, and command routing without any external dependencies.
+          Tests can be run with a single \texttt{mvn test}, with no lab access
+          or running broker.
+\end{itemize}
+
+\subsection{Challenges}
+
+\begin{itemize}
+    \item \textbf{Modbus library integration.}
+          The \texttt{easymodbus-maven} library coordinates were not confirmed
+          in time. The address map is fully specified in \texttt{ModbusIoMap}
+          and the adapter skeleton exists in \texttt{ModbusPlcGateway}, but no
+          end-to-end PLC test was carried out.
+
+    \item \textbf{Git Bash path mangling.}
+          MQTT topics beginning with \texttt{/} are silently rewritten by MSYS
+          path conversion in Git Bash. PowerShell helper scripts were added to
+          work around this, but identifying the root cause cost significant
+          debugging time.
+
+    \item \textbf{Lab access constraints.}
+          HTWG VPN or a physical lab seat is required for any live testing,
+          which limited the time available for integration work.
+\end{itemize}
+
+\subsection{Potential Improvements}
+
+\begin{enumerate}
+    \item \textbf{Real Modbus connection.}
+          The highest-priority open item is completing \texttt{ModbusConnection}
+          with \texttt{easymodbus-maven} and verifying the I/O address map
+          against the live PLC at \texttt{ea-pc111:506}.
+
+    \item \textbf{User access levels in the HMI.}
+          The assignment (§1.7 req.~5) requests two roles: Supervisor and
+          Operator. A simple login dialog restricting the emergency and reset
+          buttons to supervisors would fulfil this requirement.
+
+    \item \textbf{Fairness statistics.}
+          The optional person-simulation feature (§1.7 req.~7) was not
+          implemented. It would require a per-person state machine
+          (waiting $\to$ in cabin $\to$ arrived) and a statistics view showing
+          minimum, maximum, and average travel time.
+
+    \item \textbf{Shared contract as a Maven artifact.}
+          The MQTT contract classes are currently duplicated in both modules.
+          Publishing them as a versioned Maven artifact would eliminate the
+          duplication and make breaking changes visible immediately.
+
+    \item \textbf{One-step deployment.}
+          The deploy script automates build and SCP to \texttt{ea-pc165}, but
+          the SSH tunnel on the laptop must still be opened manually. A small
+          companion script would make the full lab setup a single command.
+\end{enumerate}
+
+% ======================================================================
+\appendix
+\section{Requirements Traceability Matrix}
+% ======================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{clX}
+\toprule
+\textbf{\#} & \textbf{Requirement (§1.6)} & \textbf{Implementation} \\
+\midrule
+1  & 4 levels
+   & \texttt{Level} enum: \texttt{LEVEL\_1} -- \texttt{LEVEL\_4} \\
+2  & 2 speeds up/down + crawl + off
+   & \texttt{Speed}, \texttt{Drive}, \texttt{MotorCommand}; mapped to Modbus coils and the crawl register in \texttt{ModbusIoMap} \\
+3  & 2 approach sensors per level / direction
+   & \texttt{LevelSensors}: approachLower, safetyLower, reached, safetyUpper, approachUpper \\
+4  & Sensor for safe door position
+   & \texttt{reached} sensor (0\,mm offset) \\
+5  & Drive at highest speed, slow before stop
+   & Deceleration: V2 $\to$ V1 $\to$ CRAWL $\to$ STOP in \texttt{ElevatorController} \\
+6  & Hall call with direction; stop if same direction
+   & \texttt{HallCall}, \texttt{RequestStore.shouldStopAt()} \\
+7  & Cabin call selects target level
+   & \texttt{RequestStore} cabin-call set \\
+8  & Idle $\to$ oldest request
+   & Timestamps in \texttt{RequestStore}; idle handling in \texttt{ElevatorController} \\
+9  & Continue while requests ahead
+   & \texttt{RequestStore.hasRequestBeyond()}, SCAN main loop \\
+10 & Reverse when no more requests ahead
+   & \texttt{ElevatorController.decideDirection()} \\
+11 & Minimum dwell 6\,s + door cycle
+   & Dwell timer in \texttt{ElevatorController} (DWELL phase) \\
+12 & Emergency stop; resume after reset
+   & EMERGENCY phase + \texttt{OperatorPanel.emergencyStop()} / \texttt{reset()} \\
+\bottomrule
+\end{tabularx}
+\caption{Requirements traceability matrix (§1.6)}
+\end{table}
+
+% ======================================================================
+\section{Configuration Reference}
+% ======================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Parameter} & \textbf{Value (Group E / C2)} \\
+\midrule
+Modbus slave      & \texttt{ea-pc111.ei.htwg-konstanz.de:506} \\
+MQTT broker       & \texttt{ea-pc165.ei.htwg-konstanz.de:1883} \\
+MQTT base topic   & \texttt{/SysArch/E} \\
+MQTT username     & \texttt{E} \quad (password not committed to version control) \\
+Control cycle     & 100\,ms \\
+Number of levels  & 4 \\
+Level height      & 3.5\,m \\
+Speed V1          & $\approx 0.1$\,m/s \\
+Speed V2          & $\approx 1.0$\,m/s \\
+Crawl speed range & $-5 \ldots +5$\,cm/s \\
+\bottomrule
+\end{tabularx}
+\caption{System configuration for Group E}
+\end{table}
+
+\end{document}
