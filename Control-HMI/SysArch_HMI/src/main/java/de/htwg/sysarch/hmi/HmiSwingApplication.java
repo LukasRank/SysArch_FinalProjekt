@@ -349,7 +349,7 @@ public final class HmiSwingApplication implements MqttCallback {
         Set<Integer> down = set(s.hallDownCalls());
 
         shaft.update(s.level(), s.direction(), s.phase(), s.door(), s.velocity(),
-                s.emergencyActive(), cabin, up, down);
+                s.emergencyActive(), cabin, up, down, s.positionMm());
 
         for (int l = 1; l <= LEVELS; l++) {
             highlight(cabinButtons[l], cabin.contains(l), new Color(0x1565C0));

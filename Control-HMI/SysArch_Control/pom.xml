@@ -20,16 +20,12 @@
     </properties>
 
     <dependencies>
-        <!--
-            Modbus/TCP: course-provided easymodbus Maven build.
-            Add once coordinates are confirmed:
-
-            <dependency>
-                <groupId>de.htwg.ei.easymodbus</groupId>
-                <artifactId>easymodbus</artifactId>
-                <version>TBD</version>
-            </dependency>
-        -->
+        <!-- Modbus/TCP: course-provided easymodbus Maven build (gitlab.ei.htwg-konstanz.de, branch ei-main) -->
+        <dependency>
+            <groupId>de.re.easymodbus</groupId>
+            <artifactId>easymodbus</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
 
         <!-- MQTT/TCP client (Eclipse Paho) — used by infrastructure.mqtt adapters only -->
         <dependency>

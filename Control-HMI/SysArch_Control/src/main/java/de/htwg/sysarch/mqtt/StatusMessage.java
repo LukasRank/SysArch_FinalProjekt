@@ -15,16 +15,17 @@ import java.util.List;
  */
 public final class StatusMessage {
 
-    private final int level;
-    private final String direction;
-    private final String phase;
-    private final String door;
-    private final int velocity;
-    private final boolean emergencyActive;
-    private final boolean motorError;
-    private final List<Integer> cabinCalls;
-    private final List<Integer> hallUpCalls;
-    private final List<Integer> hallDownCalls;
+    private int level;
+    private String direction;
+    private String phase;
+    private String door;
+    private int velocity;
+    private boolean emergencyActive;
+    private boolean motorError;
+    private List<Integer> cabinCalls;
+    private List<Integer> hallUpCalls;
+    private List<Integer> hallDownCalls;
+    private int positionMm;
 
     public StatusMessage(
             int level,
@@ -36,7 +37,8 @@ public final class StatusMessage {
             boolean motorError,
             List<Integer> cabinCalls,
             List<Integer> hallUpCalls,
-            List<Integer> hallDownCalls) {
+            List<Integer> hallDownCalls,
+            int positionMm) {
         this.level = level;
         this.direction = direction;
         this.phase = phase;
@@ -47,6 +49,7 @@ public final class StatusMessage {
         this.cabinCalls = cabinCalls;
         this.hallUpCalls = hallUpCalls;
         this.hallDownCalls = hallDownCalls;
+        this.positionMm = positionMm;
     }
 
     public int level() { return level; }
@@ -59,4 +62,5 @@ public final class StatusMessage {
     public List<Integer> cabinCalls() { return cabinCalls; }
     public List<Integer> hallUpCalls() { return hallUpCalls; }
     public List<Integer> hallDownCalls() { return hallDownCalls; }
+    public int positionMm() { return positionMm; }
 }

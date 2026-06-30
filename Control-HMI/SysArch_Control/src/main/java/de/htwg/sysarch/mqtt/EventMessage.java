@@ -9,9 +9,9 @@ package de.htwg.sysarch.mqtt;
  */
 public final class EventMessage {
 
-    private final String type;
-    private final int level;
-    private final String detail;
+    private String type;
+    private int level;
+    private String detail;
 
     public EventMessage(String type, int level, String detail) {
         this.type = type;

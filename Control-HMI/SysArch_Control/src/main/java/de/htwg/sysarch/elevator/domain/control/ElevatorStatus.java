@@ -24,6 +24,7 @@ public final class ElevatorStatus {
     private final Set<Level> cabinCalls;
     private final Set<Level> hallUpCalls;
     private final Set<Level> hallDownCalls;
+    private final int positionMm;
 
     public ElevatorStatus(
             Level currentLevel,
@@ -35,7 +36,8 @@ public final class ElevatorStatus {
             boolean motorError,
             Set<Level> cabinCalls,
             Set<Level> hallUpCalls,
-            Set<Level> hallDownCalls) {
+            Set<Level> hallDownCalls,
+            int positionMm) {
         this.currentLevel = currentLevel;
         this.travelDirection = travelDirection;
         this.phase = phase;
@@ -46,6 +48,7 @@ public final class ElevatorStatus {
         this.cabinCalls = cabinCalls;
         this.hallUpCalls = hallUpCalls;
         this.hallDownCalls = hallDownCalls;
+        this.positionMm = positionMm;
     }
 
     public Level currentLevel() { return currentLevel; }
@@ -58,6 +61,7 @@ public final class ElevatorStatus {
     public Set<Level> cabinCalls() { return cabinCalls; }
     public Set<Level> hallUpCalls() { return hallUpCalls; }
     public Set<Level> hallDownCalls() { return hallDownCalls; }
+    public int positionMm() { return positionMm; }
 
     @Override
     public boolean equals(Object o) {

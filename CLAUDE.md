@@ -59,10 +59,11 @@ meaningful change.
 - **Language/Build:** Java 11, Maven. (Targets Java 11 bytecode so the fat jar runs on the
   lab server `ea-pc165`, whose system JRE is OpenJDK 11 — no records/switch-expressions/
   text-blocks in the source.)
-- **Modbus:** Modbus/TCP master. Library intended: the course-provided
-  `easymodbus-maven` (see [§9](#9-open-questions--decisions-needed) — coordinates
-  to be confirmed). Until wired in, the code targets a thin internal
-  `ModbusConnection` port so the concrete library stays swappable.
+- **Modbus:** Modbus/TCP master via the course-provided `easymodbus-maven` library
+  (`https://gitlab.ei.htwg-konstanz.de/system-architecture/25ws/easymodbus-maven`,
+  branch `ei-main`). The concrete client is wrapped by `EasyModbusConnection`
+  (implements the internal `ModbusConnection` port) so the library stays swappable
+  and the gateway remains unit-testable without a live PLC.
 - **HMI transport:** MQTT/TCP via Eclipse Paho (`org.eclipse.paho.client.mqttv3`);
   messages are JSON via Gson. Used only by the infrastructure adapters and the
   separate HMI app — the domain stays transport-agnostic (see [§8](#8-hmi-interface-boundary)).
@@ -80,7 +81,7 @@ the group password.
 
 ```powershell
 .\run-control.ps1           # control: --sim --mqtt against the lab broker (ea-pc165)
-.\run-control.ps1 -Modbus   # control against the real PLC (needs easymodbus, §9)
+.\run-control.ps1 -Modbus   # control against the real PLC via Modbus/TCP (HTWG VPN required)
 .\run-hmi.ps1               # graphical Swing HMI on the laptop, MQTT to the lab broker
 .\run-hmi.ps1 -Console      # console HMI (headless/debug)
 .\deploy-control.ps1 -RzUser <rzlogin>        # build jar + scp it to ea-pc165, print run cmd
@@ -167,7 +168,8 @@ elevator/
     ├── config/ElevatorConfig.java      # host, port, group, cycle time, MQTT broker/topic
     ├── modbus/
     │   ├── ModbusIoMap.java            # Codesys %QX/%IX/%QW → Modbus addresses
-    │   ├── ModbusConnection.java       # thin port over the modbus client lib
+    │   ├── ModbusConnection.java       # thin port over the modbus client lib (testable interface)
+    │   ├── EasyModbusConnection.java   # ModbusConnection impl over easymodbus-maven
     │   └── ModbusPlcGateway.java       # PlcGateway impl over ModbusConnection
     ├── simulation/SimulatedPlcGateway.java  # in-memory PLC for offline dev/tests
     ├── console/InteractiveConsole.java # stdin command driver for the simulation (--interactive)
@@ -254,11 +256,9 @@ has **no** `au` (only approached from below).
 
 ### 6.2 Modbus I/O map (Codesys syntax from the assignment §4.1)
 
-> ⚠️ **VERIFY against the running simulation.** The Codesys→Modbus address
-> derivation below (`bit address = byte·8 + bit`, `%QX`→coil, `%IX`→discrete
-> input, `%QW/%IW/%ID`→register) is the standard convention but the concrete
-> slave layout/offset must be confirmed at the lab. All addresses are
-> centralised in `ModbusIoMap` so this is the only place to fix.
+The Codesys→Modbus address derivation (`bit address = byte·8 + bit`, `%QX`→coil,
+`%IX`→discrete input, `%QW/%IW/%ID`→register) has been confirmed against the live
+PLC at `ea-pc111:506`. All addresses are centralised in `ModbusIoMap`.
 
 **Outputs we write (`%QX` → coils, `%QW` → holding register):**
 
@@ -381,13 +381,11 @@ topic contract, so the partner group can replace them with any GUI/web HMI.
 
 ## 9. Open questions / decisions needed
 
-1. **easymodbus-maven coordinates** — the course provides a Maven build at
-   `https://gitlab.ei.htwg-konstanz.de/system-architecture/25ws/easymodbus-maven`.
-   Need groupId/artifactId/version (requires HTWG access) to add the dependency
-   and implement `ModbusConnection`. Until then the Modbus adapter compiles
-   against the internal port only; the in-memory simulation is the runnable path.
-2. **Modbus address layout** — confirm the `%QX/%IX/%QW`→Modbus address mapping
-   against the live slave (see §6.2 warning).
+1. ~~**easymodbus-maven coordinates**~~ — ✅ resolved: library wired in from
+   `https://gitlab.ei.htwg-konstanz.de/system-architecture/25ws/easymodbus-maven`
+   (branch `ei-main`). `EasyModbusConnection` implements `ModbusConnection` via this library.
+2. ~~**Modbus address layout**~~ — ✅ resolved: `%QX/%IX/%QW`→Modbus address mapping
+   confirmed against the live PLC and centralised in `ModbusIoMap`.
 3. **Door-safe sensor** — assumed to be `reached` (`*r`, 0 mm). Confirm whether
    the safe window is `*r` only or the `*sl/*su` band.
 4. **HMI transport** — ✅ decided: **MQTT** (see §8). The JSON message contract in
@@ -439,3 +437,9 @@ topic contract, so the partner group can replace them with any GUI/web HMI.
   → classic `switch`; text blocks → concatenated strings) across the domain model, control,
   config, MQTT DTOs (both module copies) and the HMI apps. `maven.compiler.release=11` in
   both POMs. All 21 tests still green; jar verified as class-file 55 (Java 11).
+- **2026-06-30** — Modbus/TCP fully wired in. Added `EasyModbusConnection` as the concrete
+  `ModbusConnection` implementation using the course-provided `easymodbus-maven` library
+  (gitlab.ei.htwg-konstanz.de, branch `ei-main`). `ModbusPlcGateway` was already complete;
+  `ElevatorControlApplication` now wires `EasyModbusConnection` → `ModbusPlcGateway` when
+  `--modbus` is passed. Modbus address mapping in `ModbusIoMap` confirmed against the live
+  PLC at `ea-pc111:506`. Run with `.\run-control.ps1 -Modbus` (HTWG VPN required).

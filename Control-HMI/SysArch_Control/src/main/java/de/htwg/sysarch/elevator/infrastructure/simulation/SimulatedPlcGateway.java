@@ -21,15 +21,16 @@ public final class SimulatedPlcGateway implements PlcGateway {
 
     // Sensor offsets relative to a level (al, sl, r, su, au) and their tolerances.
     private static final int[] OFFSET_MM = {-1500, -50, 0, 50, 1500};
-    private static final int APPROACH_TOL_MM = 50;
-    private static final int SAFETY_TOL_MM = 5;
-    private static final int REACHED_TOL_MM = 5;
+    private static final int APPROACH_TOL_MM = 100;
+    private static final int SAFETY_TOL_MM = 100;
+    private static final int REACHED_TOL_MM = 15;
 
     private static final long DOOR_TRAVEL_MS = 1500;
 
     private enum Door {CLOSED, OPENING, OPEN, CLOSING}
 
     private double positionMm;          // 0 = level 1
+    private double prevPositionMm;      // position at start of last cycle (for crossed-sensor detection)
     private long lastMillis = -1;
     private PlcOutputs last = PlcOutputs.IDLE;
     private Door door = Door.CLOSED;
@@ -57,18 +58,21 @@ public final class SimulatedPlcGateway implements PlcGateway {
         lastMillis = now;
 
         int velocity = velocityMmPerS(last);
+        prevPositionMm = positionMm;
         positionMm = clamp(positionMm + velocity * dt, 0, TOP_MM);
         updateDoor(now);
 
         PlcInputs.Builder b = PlcInputs.builder();
         for (Level l : Level.values()) {
-            double rel = positionMm - l.ordinal() * (double) LEVEL_HEIGHT_MM;
+            double levelMm = l.ordinal() * (double) LEVEL_HEIGHT_MM;
+            // A sensor fires if the cabin is currently in its window OR passed through it this cycle.
+            // This prevents fast movement from skipping narrow sensor windows between polling cycles.
             b.sensors(l, new LevelSensors(
-                    near(rel, OFFSET_MM[0], APPROACH_TOL_MM),
-                    near(rel, OFFSET_MM[1], SAFETY_TOL_MM),
-                    near(rel, OFFSET_MM[2], REACHED_TOL_MM),
-                    near(rel, OFFSET_MM[3], SAFETY_TOL_MM),
-                    near(rel, OFFSET_MM[4], APPROACH_TOL_MM)));
+                    crossed(levelMm + OFFSET_MM[0], APPROACH_TOL_MM),
+                    crossed(levelMm + OFFSET_MM[1], SAFETY_TOL_MM),
+                    crossed(levelMm + OFFSET_MM[2], REACHED_TOL_MM),
+                    crossed(levelMm + OFFSET_MM[3], SAFETY_TOL_MM),
+                    crossed(levelMm + OFFSET_MM[4], APPROACH_TOL_MM)));
         }
         return b.doorOpened(door == Door.OPEN)
                 .doorClosed(door == Door.CLOSED)
@@ -124,8 +128,10 @@ public final class SimulatedPlcGateway implements PlcGateway {
         }
     }
 
-    private static boolean near(double rel, int offset, int tolerance) {
-        return Math.abs(rel - offset) <= tolerance;
+    /** True if the cabin is currently in the sensor window OR moved through it this cycle. */
+    private boolean crossed(double sensorMm, int tolerance) {
+        return Math.max(prevPositionMm, positionMm) >= sensorMm - tolerance
+                && Math.min(prevPositionMm, positionMm) <= sensorMm + tolerance;
     }
 
     private static double clamp(double v, double min, double max) {

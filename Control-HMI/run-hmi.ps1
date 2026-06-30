@@ -17,10 +17,13 @@ if (-not (Test-Path $creds)) {
 
 $main = if ($Console) { "de.htwg.sysarch.hmi.HmiApplication" } else { "de.htwg.sysarch.hmi.HmiSwingApplication" }
 
+$mvn = if (Test-Path "C:\Tools\maven\bin\mvn.cmd") { "C:\Tools\maven\bin\mvn.cmd" } else { "mvn" }
+$env:JAVA_HOME = "C:\ST\STM32CubeIDE_2.1.1\STM32CubeIDE\plugins\com.st.stm32cube.ide.jre.win64_3.4.200.202601091518\jre"
+
 Write-Host "Starting HMI ($main) -> $($env:MQTT_HOST):$($env:MQTT_PORT) base=$($env:MQTT_BASE_TOPIC)" -ForegroundColor Cyan
 Push-Location (Join-Path $here "SysArch_HMI")
 try {
-    mvn -q exec:java "-Dexec.mainClass=$main" `
+    & $mvn -q exec:java "-Dexec.mainClass=$main" `
         "-Dmqtt.host=$($env:MQTT_HOST)" "-Dmqtt.port=$($env:MQTT_PORT)" `
         "-Dmqtt.baseTopic=$($env:MQTT_BASE_TOPIC)" `
         "-Dmqtt.username=$($env:MQTT_USERNAME)" "-Dmqtt.password=$($env:MQTT_PASSWORD)"

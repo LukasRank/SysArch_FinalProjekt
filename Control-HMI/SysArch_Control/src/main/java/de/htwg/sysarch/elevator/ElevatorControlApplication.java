@@ -13,6 +13,8 @@ import de.htwg.sysarch.elevator.infrastructure.mqtt.MqttCommandRouter;
 import de.htwg.sysarch.elevator.infrastructure.mqtt.MqttConnection;
 import de.htwg.sysarch.elevator.infrastructure.mqtt.MqttHmiGateway;
 import de.htwg.sysarch.elevator.infrastructure.mqtt.PahoMqttConnection;
+import de.htwg.sysarch.elevator.infrastructure.modbus.EasyModbusConnection;
+import de.htwg.sysarch.elevator.infrastructure.modbus.ModbusPlcGateway;
 import de.htwg.sysarch.elevator.infrastructure.simulation.SimulatedPlcGateway;
 import de.htwg.sysarch.mqtt.MqttTopics;
 
@@ -101,12 +103,9 @@ public final class ElevatorControlApplication {
             LOG.info("Using in-memory simulation (pass --modbus for the real PLC).");
             return new SimulatedPlcGateway();
         }
-        // To enable: add the easymodbus dependency, implement ModbusConnection over it,
-        // then return new ModbusPlcGateway(connection). See CLAUDE.md §9.
-        throw new UnsupportedOperationException(
-                "Modbus mode is not wired yet: add the easymodbus dependency and a ModbusConnection "
-                        + "implementation, then construct ModbusPlcGateway. Target: "
-                        + config.modbusHost() + ":" + config.modbusPort() + " (CLAUDE.md §9).");
+        LOG.info(() -> "Connecting to PLC via Modbus/TCP at "
+                + config.modbusHost() + ":" + config.modbusPort());
+        return new ModbusPlcGateway(new EasyModbusConnection(config.modbusHost(), config.modbusPort()));
     }
 
     /** Seed a couple of calls so the simulation demonstrates the SCAN behaviour. */

@@ -54,7 +54,8 @@ public final class MqttHmiGateway implements HmiGateway {
                 status.motorError(),
                 numbers(status.cabinCalls()),
                 numbers(status.hallUpCalls()),
-                numbers(status.hallDownCalls()));
+                numbers(status.hallDownCalls()),
+                status.positionMm());
         send(topics.status(), JsonCodec.toJson(message), true);
     }
 

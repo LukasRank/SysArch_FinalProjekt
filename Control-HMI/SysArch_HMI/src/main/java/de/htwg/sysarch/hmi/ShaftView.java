@@ -60,10 +60,12 @@ public final class ShaftView extends JPanel {
         new Timer(16, e -> animate()).start();
     }
 
-    /** Push a new state snapshot to render. {@code velocity} is signed cm/s. */
+    /** Push a new state snapshot to render. {@code velocity} is signed cm/s,
+     *  {@code positionMm} is dead-reckoning position from level 1 = 0 mm. */
     public void update(int level, String direction, String phase, String door,
                        int velocity, boolean emergency,
-                       Set<Integer> cabin, Set<Integer> up, Set<Integer> down) {
+                       Set<Integer> cabin, Set<Integer> up, Set<Integer> down,
+                       int positionMm) {
         this.reportedLevel = level;
         this.directionSign = "UP".equals(direction) ? 1 : "DOWN".equals(direction) ? -1 : 0;
         this.speedCmPerS = Math.abs(velocity);
@@ -75,13 +77,21 @@ public final class ShaftView extends JPanel {
         this.upCalls = toFlags(up);
         this.downCalls = toFlags(down);
 
-        // Re-anchor the integrated position to the exact floor whenever the cabin is
-        // truly there (idle or doors), correcting any integration drift. While moving
-        // we trust the velocity integration for smooth motion.
-        boolean atFloor = "IDLE".equals(phase) || phase.startsWith("DOOR_");
-        if (!positioned || atFloor) {
-            positionLevel = level;
+        // Direct position from dead-reckoning: positionMm=0 → level 1, positionMm=3500 → level 2, etc.
+        // This keeps the HMI in sync even if the PLC velocity register is unavailable.
+        double dr = 1.0 + positionMm / (CM_PER_LEVEL * 10.0); // convert mm to level (1..4)
+        if (!positioned) {
+            positionLevel = dr;
             positioned = true;
+        } else {
+            // Blend: always snap when stopped, smooth during movement to avoid jitter.
+            boolean atFloor = "IDLE".equals(phase) || phase.startsWith("DOOR_");
+            if (atFloor) {
+                positionLevel = dr;
+            }
+            // While moving the animate() timer integrates velocity for smooth motion,
+            // but we nudge toward the dead-reckoning truth each update to prevent drift.
+            positionLevel += (dr - positionLevel) * 0.3;
         }
         repaint();
     }

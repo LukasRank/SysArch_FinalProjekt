@@ -28,6 +28,15 @@ public final class ElevatorController {
     /** Minimum dwell time at a level (§1.6 (11)); door open/close time adds to this. */
     public static final long MIN_DWELL_MILLIS = 6_000L;
 
+    /** Level spacing (§4.2 assignment). Used for dead-reckoning position estimate. */
+    private static final double LEVEL_HEIGHT_MM = 3500.0;
+    /** Approach-sensor distance from level (§6.1 CLAUDE.md): decelerate to V1 within this distance. */
+    private static final double APPROACH_DISTANCE_MM = 1550.0;
+    /** Safety-sensor distance from level (§6.1 CLAUDE.md): go to crawl within this distance.
+     *  Set generously at 200 mm so the dead-reckoning proactively kicks in even when the
+     *  physical safety sensor window (±5 mm) is narrower than one Modbus poll interval. */
+    private static final double SAFETY_DISTANCE_MM = 200.0;
+
     private Level currentLevel = Level.LEVEL_1;
     private Direction travelDirection = Direction.NONE;
     private Phase phase = Phase.IDLE;
@@ -37,6 +46,10 @@ public final class ElevatorController {
     private boolean emergencyRequested;
     private boolean emergencyActive;
     private boolean errorLatched;
+
+    /** Dead-reckoning position estimate in mm from Level 1 (corrected by reached sensors). */
+    private double estimatedPositionMm = 0.0;
+    private long prevStepNow = -1;
 
     // ------------------------------------------------- operator-side commands
 
@@ -66,7 +79,6 @@ public final class ElevatorController {
 
     public CycleResult step(PlcInputs in, RequestStore requests, long now) {
         List<ElevatorEvent> events = new ArrayList<>();
-        updatePosition(in);
 
         // Motor fault: pulse POreset and hold (§4.1 PIm_error).
         if (in.motorError()) {
@@ -93,6 +105,7 @@ public final class ElevatorController {
             phase = (target != null && travelDirection != Direction.NONE) ? Phase.MOVING : Phase.IDLE;
         }
 
+        updatePositionEstimate(in, now);
         advance(in, requests, now, events);
 
         return buildResult(deriveMotor(), deriveDoor(in), false, in, requests, events);
@@ -162,12 +175,44 @@ public final class ElevatorController {
         LevelSensors s = in.at(stop);
         if (s.reached()) {
             currentLevel = stop;
+            estimatedPositionMm = stop.ordinal() * LEVEL_HEIGHT_MM;
             beginDoorCycle(requests, events);
         } else if (s.safetyFrom(travelDirection)) {
             phase = Phase.CRAWLING;
         } else if (s.approachFrom(travelDirection) && phase == Phase.MOVING) {
             phase = Phase.DECELERATING;
+        } else {
+            // Dead-reckoning fallback: use estimated position when sensors are not seen
+            // (e.g. Modbus polling missed a narrow sensor window at V2).
+            boolean overshot = applyDeadReckoningDecel(stop);
+            if (overshot) {
+                // Snap to target and open door — prevents getting stuck in CRAWLING forever.
+                currentLevel = stop;
+                estimatedPositionMm = stop.ordinal() * LEVEL_HEIGHT_MM;
+                beginDoorCycle(requests, events);
+            }
         }
+    }
+
+    /**
+     * Proactively decelerate based on dead-reckoning when PLC sensors are not (yet) seen.
+     * Returns {@code true} when an overshoot is detected (caller must handle the stop).
+     */
+    private boolean applyDeadReckoningDecel(Level stop) {
+        double targetMm = stop.ordinal() * LEVEL_HEIGHT_MM;
+        double distMm = travelDirection == Direction.UP
+                ? targetMm - estimatedPositionMm
+                : estimatedPositionMm - targetMm;
+        if (distMm < 0) {
+            return true;  // overshot — caller opens door instead of staying in CRAWLING
+        }
+        if (phase == Phase.MOVING && distMm <= APPROACH_DISTANCE_MM) {
+            phase = Phase.DECELERATING;
+        }
+        if ((phase == Phase.MOVING || phase == Phase.DECELERATING) && distMm <= SAFETY_DISTANCE_MM) {
+            phase = Phase.CRAWLING;
+        }
+        return false;
     }
 
     /** Decide direction and target after a stop; go IDLE if nothing remains (§1.6 (9),(10)). */
@@ -223,10 +268,22 @@ public final class ElevatorController {
         }
     }
 
-    private void updatePosition(PlcInputs in) {
+    private void updatePositionEstimate(PlcInputs in, long now) {
+        // Integrate velocity to maintain a dead-reckoning position estimate.
+        if (prevStepNow >= 0) {
+            double dt = (now - prevStepNow) / 1000.0;
+            estimatedPositionMm += in.velocityCmPerS() * 10.0 * dt;
+            double maxMm = (Level.COUNT - 1) * LEVEL_HEIGHT_MM;
+            if (estimatedPositionMm < 0) estimatedPositionMm = 0;
+            if (estimatedPositionMm > maxMm) estimatedPositionMm = maxMm;
+        }
+        prevStepNow = now;
+
+        // Ground truth: snap to exact level position whenever a reached sensor fires.
         for (Level l : Level.values()) {
             if (in.at(l).reached()) {
                 currentLevel = l;
+                estimatedPositionMm = l.ordinal() * LEVEL_HEIGHT_MM;
             }
         }
     }
@@ -265,7 +322,8 @@ public final class ElevatorController {
         ElevatorStatus status = new ElevatorStatus(
                 currentLevel, travelDirection, phase, in.doorState(), in.velocityCmPerS(),
                 emergencyActive, in.motorError(),
-                requests.cabinCalls(), requests.hallUpCalls(), requests.hallDownCalls());
+                requests.cabinCalls(), requests.hallUpCalls(), requests.hallDownCalls(),
+                (int) estimatedPositionMm);
         return new CycleResult(outputs, status, List.copyOf(events));
     }
 }

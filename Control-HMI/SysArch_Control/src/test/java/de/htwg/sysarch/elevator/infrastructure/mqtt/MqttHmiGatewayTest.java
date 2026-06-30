@@ -32,7 +32,7 @@ class MqttHmiGatewayTest {
         ElevatorStatus status = new ElevatorStatus(
                 Level.LEVEL_2, Direction.UP, Phase.MOVING, DoorState.CLOSED, 100,
                 false, false,
-                EnumSet.of(Level.LEVEL_4), EnumSet.of(Level.LEVEL_2), EnumSet.noneOf(Level.class));
+                EnumSet.of(Level.LEVEL_4), EnumSet.of(Level.LEVEL_2), EnumSet.noneOf(Level.class), 3500);
 
         gateway.publish(status);
 
@@ -56,7 +56,7 @@ class MqttHmiGatewayTest {
     void doesNotRepublishUnchangedStatus() {
         ElevatorStatus status = new ElevatorStatus(
                 Level.LEVEL_1, Direction.NONE, Phase.IDLE, DoorState.CLOSED, 0,
-                false, false, EnumSet.noneOf(Level.class), EnumSet.noneOf(Level.class), EnumSet.noneOf(Level.class));
+                false, false, EnumSet.noneOf(Level.class), EnumSet.noneOf(Level.class), EnumSet.noneOf(Level.class), 0);
 
         gateway.publish(status);
         gateway.publish(status);

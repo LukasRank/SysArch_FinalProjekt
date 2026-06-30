@@ -27,10 +27,10 @@ public final class CommandMessage {
     public static final String ENGAGE = "engage";
     public static final String CLEAR = "clear";
 
-    private final String type;
-    private final Integer level;
-    private final String direction;
-    private final String action;
+    private String type;
+    private Integer level;
+    private String direction;
+    private String action;
 
     public CommandMessage(String type, Integer level, String direction, String action) {
         this.type = type;
